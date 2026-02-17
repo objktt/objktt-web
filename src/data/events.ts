@@ -45,7 +45,7 @@ export const events: Event[] = [
     id: 'evt-005',
     date: '2026.04.05', 
     title: 'Rhythm Arch', 
-    type: 'Performance', 
+    type: 'Live Performance',
     description: 'Percussive structures in time.',
     script: 'noise.js' 
   },

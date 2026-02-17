@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import Grid from '../components/GridSystem';
 import emailjs from '@emailjs/browser';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const Contact: React.FC = () => {
   const formRef = useRef<HTMLFormElement>(null);
@@ -10,6 +11,7 @@ const Contact: React.FC = () => {
     message: ''
   });
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const { t } = useLanguage();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,20 +71,20 @@ const Contact: React.FC = () => {
                 alignItems: 'center',
                 gap: '0.5rem'
             }}>
-                &larr; Back
+                &larr; {t.contact.back}
             </a>
         </div>
 
         <div style={{ gridColumn: '2 / 12', marginBottom: '4rem' }}>
-          <h2 style={{ fontSize: '3.5rem', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
-            Contact
+          <h2 className="page-heading" style={{ fontSize: '3.5rem', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
+            {t.contact.title}
           </h2>
         </div>
 
         <div style={{ gridColumn: '2 / 8' }}>
           <form ref={formRef} onSubmit={handleSubmit}>
             <div style={{ marginBottom: '2rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', opacity: 0.6 }}>Name</label>
+              <label style={{ display: 'block', marginBottom: '0.5rem', opacity: 0.6 }}>{t.contact.name}</label>
               <input
                 type="text"
                 name="name"
@@ -94,7 +96,7 @@ const Contact: React.FC = () => {
             </div>
             
             <div style={{ marginBottom: '2rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', opacity: 0.6 }}>Email</label>
+              <label style={{ display: 'block', marginBottom: '0.5rem', opacity: 0.6 }}>{t.contact.email}</label>
               <input
                 type="email"
                 name="email"
@@ -106,7 +108,7 @@ const Contact: React.FC = () => {
             </div>
 
             <div style={{ marginBottom: '4rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', opacity: 0.6 }}>Message</label>
+              <label style={{ display: 'block', marginBottom: '0.5rem', opacity: 0.6 }}>{t.contact.message}</label>
               <textarea
                 name="message"
                 value={formData.message}
@@ -134,24 +136,23 @@ const Contact: React.FC = () => {
                     opacity: status === 'sending' ? 0.5 : 1
                 }}
                 >
-                {status === 'sending' ? 'Sending...' : 'Send'} <span style={{ fontSize: '1.5rem' }}>&rarr;</span>
+                {status === 'sending' ? t.contact.sending : t.contact.send} <span style={{ fontSize: '1.5rem' }}>&rarr;</span>
                 </button>
 
-                {status === 'success' && <span style={{ color: 'green', fontSize: '1.2rem' }}>Message sent successfully.</span>}
-                {status === 'error' && <span style={{ color: 'red', fontSize: '1.2rem' }}>Failed to send. Please try again.</span>}
+                {status === 'success' && <span style={{ color: 'green', fontSize: '1.2rem' }}>{t.contact.success}</span>}
+                {status === 'error' && <span style={{ color: 'red', fontSize: '1.2rem' }}>{t.contact.error}</span>}
             </div>
           </form>
         </div>
 
         <div style={{ gridColumn: '9 / 12' }}>
-            <p style={{ fontSize: '1.25rem', lineHeight: 1.6, marginTop: '2.5rem' }}>
-                For inquiries related to events, collaborations, or general questions.
+            <p style={{ fontSize: '1.25rem', lineHeight: 1.6, marginTop: '2.5rem', whiteSpace: 'pre-line' }}>
+                {t.contact.info}
             </p>
             <p style={{ fontSize: '1rem', opacity: 0.6, marginTop: '2rem' }}>
                 objktt@gmail.com
             </p>
         </div>
-
       </Grid>
     </div>
   );

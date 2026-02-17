@@ -3,6 +3,7 @@ import React, { useRef, useState, Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, PresentationControls, ContactShadows, useGLTF, Environment, DragControls } from '@react-three/drei';
 import * as THREE from 'three';
+import { useBreakpoint } from '../hooks/useBreakpoint';
 
 // --- Models ---
 
@@ -44,7 +45,7 @@ const Record = (props: any) => {
         <meshBasicMaterial color="#1119E9" />
       </mesh>
       {/* Label */}
-      <mesh position={[0, 0, -0.02]}> 
+      <mesh position={[0, 0, -0.02]}>
         <extrudeGeometry args={[labelShape, { depth: 0.06, bevelEnabled: false, curveSegments: 64 }]} />
         <meshBasicMaterial color="#1119E9" />
       </mesh>
@@ -62,12 +63,10 @@ const RecorderModel = (props: any) => {
   const mesh = useRef<THREE.Group>(null);
   const [hovered, setHover] = useState(false);
 
-  // Apply Silhouette/Flat Style
   React.useLayoutEffect(() => {
     scene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const m = child as THREE.Mesh;
-        // Use a dark grey/black for the recorder silhouette
         m.material = new THREE.MeshBasicMaterial({ color: '#1119E9' });
       }
     });
@@ -75,8 +74,7 @@ const RecorderModel = (props: any) => {
 
   useFrame(() => {
     if (mesh.current) {
-        // mesh.current.rotation.y += 0.005; // Gentle rotation? Or static? Let's keep it static but scalable
-        const scale = hovered ? 1.7 : 1.5; // Adjusted scale
+        const scale = hovered ? 1.7 : 1.5;
         mesh.current.scale.lerp(new THREE.Vector3(scale, scale, scale), 0.1);
     }
   });
@@ -94,7 +92,6 @@ const WineBottleModel = (props: any) => {
     const mesh = useRef<THREE.Group>(null);
     const [hovered, setHover] = useState(false);
 
-    // Apply Burgundy Silhouette (Flat)
     React.useLayoutEffect(() => {
         scene.traverse((child) => {
             if ((child as THREE.Mesh).isMesh) {
@@ -123,15 +120,10 @@ const CocktailModel = (props: any) => {
     const mesh = useRef<THREE.Group>(null);
     const [hovered, setHover] = useState(false);
 
-    // Apply Stylized Silhouette (Flat) - Keeping original colors if possible or setting a theme
-    // Since Cocktail has multiple parts (Glass, Liquid, Olive), replacing specific materials is better.
-    // However, for a pure silhouette look, maybe just one color? 
-    // Or map existing colors to Basic?
     React.useLayoutEffect(() => {
         scene.traverse((child) => {
              if ((child as THREE.Mesh).isMesh) {
                 const m = child as THREE.Mesh;
-                // Preserve original color but make it flat
                 m.material = new THREE.MeshBasicMaterial({ color: '#1119E9' });
             }
         });
@@ -139,7 +131,7 @@ const CocktailModel = (props: any) => {
 
     useFrame(() => {
         if(mesh.current) {
-             const scale = hovered ? 6.6 : 6; // Increased scale by 3x (from 2)
+             const scale = hovered ? 6.6 : 6;
              mesh.current.scale.lerp(new THREE.Vector3(scale, scale, scale), 0.1);
         }
     })
@@ -155,13 +147,11 @@ const MonsteraB02Model = (props: any) => {
     const { scene } = useGLTF('/models/monstera_b02.glb');
     const mesh = useRef<THREE.Group>(null);
     const [hovered, setHover] = useState(false);
-    
-    // Apply Flat Green Color (No Shading)
+
     React.useLayoutEffect(() => {
         scene.traverse((child) => {
             if ((child as THREE.Mesh).isMesh) {
                 const m = child as THREE.Mesh;
-                // Replace with MeshBasicMaterial for flat, unlit appearance
                 m.material = new THREE.MeshBasicMaterial({ color: '#1119E9' });
             }
         });
@@ -169,7 +159,7 @@ const MonsteraB02Model = (props: any) => {
 
     useFrame(() => {
         if(mesh.current) {
-             const scale = hovered ? 2.2 : 2; 
+             const scale = hovered ? 2.2 : 2;
              mesh.current.scale.lerp(new THREE.Vector3(scale, scale, scale), 0.1);
         }
     })
@@ -181,62 +171,78 @@ const MonsteraB02Model = (props: any) => {
     )
 }
 
+// Wrapper that conditionally applies DragControls
+const MaybeDraggable: React.FC<{ enabled: boolean; children: React.ReactNode }> = ({ enabled, children }) => {
+  if (enabled) return <DragControls>{children}</DragControls>;
+  return <>{children}</>;
+};
+
 const HeroScene: React.FC = () => {
+  const { isMobile } = useBreakpoint();
+
   return (
-    <Canvas 
-      dpr={[1, 2]} 
-      camera={{ position: [0, 0, 5], fov: 45 }} 
-      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'auto', zIndex: -1, userSelect: 'none', WebkitUserSelect: 'none' }} 
+    <Canvas
+      dpr={isMobile ? [1, 1] : [1, 2]}
+      camera={{ position: [0, 0, 5], fov: 45 }}
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: isMobile ? 'none' : 'auto',
+        zIndex: -1,
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        touchAction: 'pan-y',
+      }}
     >
- 
+
         <ambientLight intensity={0.5} />
         <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} castShadow />
         <pointLight position={[-10, -10, -10]} intensity={0.5} />
-        <Environment preset="city" /> 
-        
+        <Environment preset="city" />
+
         <Suspense fallback={null}>
             <PresentationControls
-            global={false} 
-            cursor={true} 
-            snap={true} 
-            speed={1.5} 
-            zoom={0.8} 
-            rotation={[0, 0, 0]} 
-            polar={[-0.4, 0.2]} 
-            azimuth={[-0.4, 0.4]} 
+            global={false}
+            cursor={!isMobile}
+            snap={true}
+            speed={1.5}
+            zoom={0.8}
+            rotation={[0, 0, 0]}
+            polar={isMobile ? [-0.1, 0.1] : [-0.4, 0.2]}
+            azimuth={isMobile ? [-0.1, 0.1] : [-0.4, 0.4]}
             >
                 <group position={[0, -0.5, 0]}>
                     <Float speed={2} rotationIntensity={1} floatIntensity={1} floatingRange={[-0.1, 0.1]}>
-                        <DragControls>
+                        <MaybeDraggable enabled={!isMobile}>
                             <Record position={[-0.5, 1.8, -1.5]} rotation={[0.5, 0.5, 0]} scale={0.7} />
-                        </DragControls>
+                        </MaybeDraggable>
                     </Float>
 
                     <Float speed={2} rotationIntensity={1} floatIntensity={1} floatingRange={[-0.1, 0.1]}>
-                        <DragControls>
+                        <MaybeDraggable enabled={!isMobile}>
                             <RecorderModel position={[-2.2, 1.2, 0]} rotation={[0.4, 0.5, 0]} scale={1.5} />
-                        </DragControls>
+                        </MaybeDraggable>
                     </Float>
 
-                    {/* Replaced Abstract WineBottle with Real WineBottle GLB */}
                     <Float speed={1.5} rotationIntensity={0.5} floatIntensity={0.8} floatingRange={[-0.2, 0.2]}>
-                        <DragControls>
+                        <MaybeDraggable enabled={!isMobile}>
                             <WineBottleModel position={[2, 0.5, -0.5]} rotation={[0, 0, 0.2]} scale={2} />
-                        </DragControls>
+                        </MaybeDraggable>
                     </Float>
 
-                   {/* Replaced Abstract Cocktail & Monstera with Real Cocktail GLB */}
                     <Float speed={2.5} rotationIntensity={0.5} floatIntensity={0.5} floatingRange={[-0.1, 0.1]}>
-                        <DragControls>
+                        <MaybeDraggable enabled={!isMobile}>
                             <CocktailModel position={[1, 0, 1.5]} rotation={[0, 0.2, 0]} scale={6} />
-                        </DragControls>
+                        </MaybeDraggable>
                     </Float>
 
-                    {/* New Monstera B02 */}
                     <Float speed={1} rotationIntensity={0.2} floatIntensity={0.3}>
-                        <DragControls>
+                        <MaybeDraggable enabled={!isMobile}>
                             <MonsteraB02Model position={[-1.8, -1.2, 0.5]} rotation={[0, 0.5, 0]} scale={2} />
-                        </DragControls>
+                        </MaybeDraggable>
                     </Float>
                 </group>
             </PresentationControls>

@@ -1,5 +1,6 @@
 import React from 'react';
 import Grid from '../components/GridSystem';
+import { useLanguage } from '../contexts/LanguageContext';
 
 import img1 from '../assets/img/objktt/DSC00876.JPEG';
 import img2 from '../assets/img/objktt/DSC00885.JPEG';
@@ -8,14 +9,15 @@ import img4 from '../assets/img/objktt/DSC00915.JPEG';
 import img5 from '../assets/img/objktt/DSC00926.JPEG';
 
 const About: React.FC = () => {
+  const { t } = useLanguage();
+
   return (
     <div style={{ padding: '0 0 8rem 0' }}>
       <Grid>
         {/* Title Section */}
         <div style={{ gridColumn: '2 / 8', marginTop: '6rem', marginBottom: '4rem' }}>
-          <h2 style={{ fontSize: '3.5rem', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
-            We have time,<br />
-            air and objects.
+          <h2 className="page-heading" style={{ fontSize: '3.5rem', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em', whiteSpace: 'pre-line' }}>
+            {t.about.title}
           </h2>
         </div>
 
@@ -26,11 +28,8 @@ const About: React.FC = () => {
 
         {/* Text Block 1 */}
         <div style={{ gridColumn: '2 / 6', marginBottom: '4rem' }}>
-          <p style={{ fontSize: '1.25rem', lineHeight: 1.6 }}>
-            Objktt is a record bar and cultural space.
-            We believe music needs time.
-            People need air.
-            Objects carry memory.
+          <p style={{ fontSize: '1.25rem', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+            {t.about.block1}
           </p>
         </div>
 
@@ -41,9 +40,8 @@ const About: React.FC = () => {
 
         {/* Text Block 2 - Right aligned relative to image */}
         <div style={{ gridColumn: '6 / 11', marginTop: '4rem', marginBottom: '4rem' }}>
-          <p style={{ fontSize: '1.5rem', lineHeight: 1.5, fontWeight: 500 }}>
-            Located on the 4th floor without an elevator,
-            we chose density over convenience.
+          <p style={{ fontSize: '1.5rem', lineHeight: 1.5, fontWeight: 500, whiteSpace: 'pre-line' }}>
+            {t.about.block2}
           </p>
         </div>
 
@@ -54,9 +52,8 @@ const About: React.FC = () => {
 
         {/* Text Block 3 */}
         <div style={{ gridColumn: '8 / 12', marginBottom: '2rem', textAlign: 'left' }}>
-           <p style={{ fontSize: '1.25rem', lineHeight: 1.6 }}>
-            Sound is not background here.<br />
-            It is structure.
+           <p style={{ fontSize: '1.25rem', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+            {t.about.block3}
            </p>
         </div>
 
@@ -70,17 +67,14 @@ const About: React.FC = () => {
 
         {/* Final Text */}
         <div style={{ gridColumn: '4 / 10', textAlign: 'left', marginBottom: '4rem' }}>
-          <p style={{ fontSize: '1.25rem', lineHeight: 1.6, marginBottom: '2rem' }}>
-            Taste is not performance.<br />
-            It is practice.
+          <p style={{ fontSize: '1.25rem', lineHeight: 1.6, marginBottom: '2rem', whiteSpace: 'pre-line' }}>
+            {t.about.block4}
           </p>
-          <p style={{ fontSize: '1.25rem', lineHeight: 1.6, marginBottom: '2rem' }}>
-            We curate records, host nights,<br />
-            and build a space where listening becomes connection.
+          <p style={{ fontSize: '1.25rem', lineHeight: 1.6, marginBottom: '2rem', whiteSpace: 'pre-line' }}>
+            {t.about.block5}
           </p>
-          <p style={{ fontSize: '2rem', fontWeight: 700, lineHeight: 1.4, marginTop: '4rem' }}>
-            Objktt exists slowly.<br />
-            And grows deliberately.
+          <p style={{ fontSize: '2rem', fontWeight: 700, lineHeight: 1.4, marginTop: '4rem', whiteSpace: 'pre-line' }}>
+            {t.about.block6}
           </p>
           
           <a href="/contact" style={{ 
@@ -93,7 +87,7 @@ const About: React.FC = () => {
               borderBottom: '1px solid currentColor', 
               paddingBottom: '0.2rem' 
           }}>
-            Contact &rarr;
+            {t.about.contactBtn} &rarr;
           </a>
         </div>
 

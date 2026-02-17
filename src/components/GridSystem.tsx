@@ -4,11 +4,12 @@ interface GridProps {
   children: React.ReactNode;
   style?: React.CSSProperties;
   showLines?: boolean;
+  className?: string;
 }
 
-const Grid: React.FC<GridProps> = ({ children, style, showLines = false }) => {
+const Grid: React.FC<GridProps> = ({ children, style, showLines = false, className }) => {
   return (
-    <div style={{
+    <div className={`grid-responsive${className ? ` ${className}` : ''}`} style={{
       display: 'grid',
       gridTemplateColumns: 'repeat(12, 1fr)',
       gap: showLines ? '1px' : '0', // Use gap for lines if background is set
