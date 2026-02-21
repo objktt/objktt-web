@@ -20,7 +20,7 @@ const Contact: React.FC = () => {
     // EmailJS Service
     // NOTE: Replace these with your actual Service ID, Template ID, and Public Key
     // You can find these in your EmailJS dashboard: https://dashboard.emailjs.com/
-    const SERVICE_ID = 'service_xrmwu0k';
+    const SERVICE_ID = 'service_vgxq9ev';
     const TEMPLATE_ID = 'template_oxzhf08';
     const PUBLIC_KEY = 'FhaoMuWPdR1b2o9MU';
 
@@ -150,7 +150,7 @@ const Contact: React.FC = () => {
                 {t.contact.info}
             </p>
             <p style={{ fontSize: '1rem', opacity: 0.6, marginTop: '2rem' }}>
-                objktt@gmail.com
+                hello@objktt.kr
             </p>
         </div>
       </Grid>

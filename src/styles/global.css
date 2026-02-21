@@ -2,7 +2,7 @@
 
 :root {
   /* Default to Light Mode */
-  --color-bg: #F2F2F2;
+  --color-bg: #FFFFFF;
   --color-text: #000000;
   --color-line: rgba(0, 0, 0, 0.2);
   --color-accent: #FF3333; /* Minimal accent if needed */
@@ -31,7 +31,10 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
+}
+
+#root {
+  overflow-x: clip;
 }
 
 html {
@@ -151,4 +154,9 @@ button {
   .hero-title {
     font-size: 14vw !important;
   }
+}
+
+@keyframes svgFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
 }

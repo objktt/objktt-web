@@ -10,13 +10,21 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'dark' || savedTheme === 'light') return savedTheme;
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
+    }
+    return 'light';
+  });
   const [menuOpen, setMenuOpen] = useState(false);
   const { language, toggleLanguage, t } = useLanguage();
   const { isMobile } = useBreakpoint();
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
   }, [theme]);
 
   // Close menu on resize to desktop
@@ -32,34 +40,52 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <button
       onClick={toggleTheme}
       style={{
-        opacity: 0.5,
+        width: '44px',
+        height: '24px',
+        borderRadius: '12px',
+        backgroundColor: theme === 'light' ? '#1119E9' : '#FBBF24',
+        border: 'none',
+        cursor: 'pointer',
+        padding: '2px',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
-        background: 'none',
-        border: 'none',
-        color: 'inherit',
-        cursor: 'pointer'
+        opacity: theme === 'light' ? 1 : 0.9,
+        transition: 'all 0.3s ease',
+        boxSizing: 'border-box'
       }}
       aria-label="Toggle Theme"
     >
-      {theme === 'light' ? (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="5"></circle>
-          <line x1="12" y1="1" x2="12" y2="3"></line>
-          <line x1="12" y1="21" x2="12" y2="23"></line>
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-          <line x1="1" y1="12" x2="3" y2="12"></line>
-          <line x1="21" y1="12" x2="23" y2="12"></line>
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-        </svg>
-      ) : (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-        </svg>
-      )}
+      <div style={{
+        width: '20px',
+        height: '20px',
+        flexShrink: 0,
+        borderRadius: '50%',
+        backgroundColor: 'var(--color-bg)',
+        transform: theme === 'light' ? 'translateX(0)' : 'translateX(20px)',
+        transition: 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1), background-color 0.3s ease',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+      }}>
+        {theme === 'light' ? (
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        ) : (
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        )}
+      </div>
     </button>
   );
 
@@ -72,31 +98,47 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         width: '100%',
         zIndex: 100,
       }}>
-        <Grid showLines={true}>
+        <Grid showLines={true} style={{ gap: 0, position: 'relative' }}>
+          {/* Center vertical line */}
+          {!isMobile && (
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              left: '50%',
+              width: '1px',
+              backgroundColor: 'var(--color-line)',
+              pointerEvents: 'none',
+              zIndex: 1,
+            }} />
+          )}
           {/* Logo Section */}
           <div style={{
              gridColumn: isMobile ? '1 / -1' : '1 / 5',
              padding: '1rem',
              display: 'flex',
              alignItems: 'center',
-             justifyContent: isMobile ? 'space-between' : 'flex-start',
-             height: 'var(--header-height)'
+             justifyContent: 'space-between',
+             height: 'var(--header-height)',
           }}>
             <NavLink to="/" style={{ fontSize: '1.5rem', fontWeight: 700 }}>
               <svg
-                viewBox="540 240 320 300"
+                viewBox="0 0 1366 537.08"
                 style={{
-                  height: '40px',
+                  height: '28px',
                   width: 'auto',
                   display: 'block',
                   fill: 'var(--color-text)',
                   transition: 'fill 0.3s ease'
                 }}
               >
-                <path d="M806.91,487.13l-.73,1.09c-7.3,10.91-24.78,17.43-46.76,17.43-17.32,0-33.5-5.11-41.23-13.01-2.47-2.52-3.69-4.97-3.65-7.3.13-5.64,3.56-9.44,5.34-11.04,11.75,6.29,25.31,9.62,39.28,9.62,8.47,0,50.72-1.11,50.72-23.11,0-22-42.25-23.11-50.72-23.11-14.03,0-27.59,3.32-39.27,9.61-1.78-1.63-5.22-5.47-5.35-11.03-.05-2.34,1.18-4.8,3.65-7.31,7.73-7.91,23.91-13.02,41.23-13.02,22,0,39.48,6.51,46.76,17.43l.73,1.09,18.57-12.4-.73-1.09c-5.51-8.22-22.91-27.35-65.33-27.35-23.72,0-45.1,7.37-57.18,19.72-6.75,6.86-10.22,14.96-10.03,23.4.23,11.39,5.8,19.67,9.64,24.03-3.82,4.35-9.38,12.61-9.64,24.03-.16,8.42,3.3,16.51,10.02,23.4,12.11,12.35,33.48,19.72,57.18,19.72,42.34,0,59.79-19.09,65.32-27.29l.74-1.09-18.57-12.4ZM742.65,460.8c5.26-1.39,10.81-2.1,16.51-2.1,8.86,0,16.09.92,21.38,2.1-5.28,1.18-12.54,2.1-21.38,2.1-5.71,0-11.25-.71-16.51-2.1Z"/>
-                <path d="M607.72,241.03c-37.06,0-67.2,30.15-67.2,67.2,0,37.06,30.15,67.2,67.2,67.2,37.06,0,67.2-30.15,67.2-67.2,0-37.06-30.15-67.2-67.2-67.2ZM652.6,308.23c0,24.75-20.13,44.88-44.88,44.88-24.75,0-44.88-20.13-44.88-44.88,0-24.75,20.13-44.88,44.88-44.88,24.75,0,44.88,20.13,44.88,44.88Z"/>
-                <path d="M607.72,393.57c-37.06,0-67.2,30.15-67.2,67.2s30.15,67.2,67.2,67.2c37.06,0,67.2-30.15,67.2-67.2,0-37.06-30.15-67.2-67.2-67.2ZM652.6,460.77c0,24.75-20.13,44.88-44.88,44.88-24.75,0-44.88-20.13-44.88-44.88,0-24.75,20.13-44.88,44.88-44.88,24.75,0,44.88,20.13-44.88,44.88Z"/>
-                <path d="M800.7,246.36v39.53c-25.9-13.15-57.79-13.16-83.69-.01v-39.52s-22.32,0-22.32,0v123.78s22.32,0,22.32,0v-4.68c12.63,6.42,26.93,9.86,41.83,9.86,14.91,0,29.22-3.44,41.86-9.86v4.68h22.32s0-123.78,0-123.78h-22.32ZM717.02,312.2c24.02-18.66,59.67-18.66,83.69,0v26.92c-24.02,18.66-59.67,18.66-83.69,0v-26.92Z"/>
+                <path d="M621.71,381.21c0,41.37-33.71,73.55-73.55,73.55v70.49c79.68,0,144.04-64.36,144.04-144.04v-245.17h-70.49v245.17Z"/>
+                <path d="M148.22,125.32c-73.55,0-133.31,59.76-133.31,133.31s59.76,133.31,133.31,133.31,133.31-59.76,133.31-133.31-59.76-133.31-133.31-133.31ZM148.22,321.45c-35.24,0-62.82-27.58-62.82-62.82s27.58-62.82,62.82-62.82,62.82,27.58,62.82,62.82-29.11,62.82-62.82,62.82Z"/>
+                <path d="M594.13,258.63c0-73.55-59.76-133.31-133.31-133.31-32.18,0-61.29,10.73-84.28,30.65V10.39h-70.49v370.82h70.49v-19.92c22.98,18.39,52.1,30.65,84.28,30.65,73.55,0,133.31-59.76,133.31-133.31ZM397.99,258.63c0-35.24,27.58-62.82,62.82-62.82s62.82,27.58,62.82,62.82-27.58,62.82-62.82,62.82-62.82-27.58-62.82-62.82Z"/>
+                <circle cx="656.95" cy="54.83" r="49.03"/>
+                <polygon points="1000.19 136.04 899.06 136.04 813.25 221.85 813.25 10.39 742.76 10.39 742.76 381.21 813.25 381.21 813.25 322.99 839.3 296.94 923.57 381.21 1024.71 381.21 889.86 246.37 1000.19 136.04"/>
+                <path d="M1124.31,76.28h-70.49v59.76h-41.37v70.49h41.37v98.07c0,61.29,50.57,111.86,111.86,111.86v-70.49c-22.98,0-41.37-18.39-41.37-41.37v-98.07h41.37v-70.49h-41.37v-59.76h0Z"/>
+                <path d="M1351.09,206.53v-70.49h-41.37v-59.76h-70.49v59.76h-41.37v70.49h41.37v98.07c0,61.29,50.57,111.86,111.86,111.86v-70.49c-22.98,0-41.37-18.39-41.37-41.37v-98.07h41.37Z"/>
               </svg>
             </NavLink>
 
@@ -156,6 +198,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </button>
               </div>
             )}
+
           </div>
 
           {/* Desktop Navigation */}
@@ -169,8 +212,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                height: 'var(--header-height)'
             }}>
               <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-                <NavLink to="/" className={({ isActive }) => isActive ? "active-link" : ""} style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t.nav.index}</NavLink>
-                <NavLink to="/about" className={({ isActive }) => isActive ? "active-link" : ""} style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t.nav.about}</NavLink>
+                <NavLink to="/menu" className={({ isActive }) => isActive ? "active-link" : ""} style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t.nav.menu}</NavLink>
+                <NavLink to="/music" className={({ isActive }) => isActive ? "active-link" : ""} style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t.nav.music}</NavLink>
                 <NavLink to="/events" className={({ isActive }) => isActive ? "active-link" : ""} style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t.nav.events}</NavLink>
 
                 <button
@@ -200,8 +243,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Mobile Menu Overlay */}
       {isMobile && menuOpen && (
         <div className="mobile-menu-overlay" style={{ top: 'var(--header-height)' }}>
-          <NavLink to="/" onClick={() => setMenuOpen(false)} style={{ fontSize: '2rem', fontWeight: 500 }}>{t.nav.index}</NavLink>
-          <NavLink to="/about" onClick={() => setMenuOpen(false)} style={{ fontSize: '2rem', fontWeight: 500 }}>{t.nav.about}</NavLink>
+          <NavLink to="/menu" onClick={() => setMenuOpen(false)} style={{ fontSize: '2rem', fontWeight: 500 }}>{t.nav.menu}</NavLink>
+          <NavLink to="/music" onClick={() => setMenuOpen(false)} style={{ fontSize: '2rem', fontWeight: 500 }}>{t.nav.music}</NavLink>
           <NavLink to="/events" onClick={() => setMenuOpen(false)} style={{ fontSize: '2rem', fontWeight: 500 }}>{t.nav.events}</NavLink>
         </div>
       )}
@@ -213,18 +256,82 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Footer */}
       <footer>
         <Grid showLines={false}>
-           <div style={{ gridColumn: '1 / 9', padding: isMobile ? '1rem 0 0.25rem' : '2rem', fontSize: '0.75rem', opacity: 0.5 }}>
+          {/* Column 1: Logo */}
+          <div style={{
+            gridColumn: isMobile ? '1 / -1' : '1 / 5',
+            padding: isMobile ? '2rem 1rem 0' : '1.5rem 1rem 4rem',
+            borderTop: '1px solid var(--color-line)'
+          }}>
+            <svg
+              viewBox="0 0 430 430"
+              style={{
+                height: '48px',
+                width: 'auto',
+                display: 'block',
+                fill: 'var(--color-text)',
+                opacity: 0.8,
+                transition: 'fill 0.3s ease',
+                marginBottom: '1rem' // Added margin to space copyright
+              }}
+            >
+              <path d="M397.28,365.98l-1.08,1.61c-10.74,16.05-36.45,25.64-68.79,25.64-25.48,0-49.29-7.51-60.66-19.14-3.63-3.7-5.43-7.32-5.36-10.75.19-8.3,5.24-13.89,7.86-16.24,17.29,9.26,37.24,14.15,57.78,14.15,12.46,0,74.61-1.64,74.61-34s-62.15-34-74.61-34c-20.65,0-40.59,4.88-57.77,14.14-2.62-2.39-7.68-8.05-7.86-16.23-.07-3.44,1.73-7.06,5.36-10.75,11.37-11.63,35.18-19.15,60.66-19.15,32.37,0,58.08,9.58,68.79,25.64l1.07,1.61,27.32-18.24-1.08-1.61c-8.11-12.09-33.7-40.23-96.1-40.23-34.9,0-66.34,10.84-84.11,29-9.93,10.1-15.03,22-14.75,34.42.33,16.76,8.54,28.93,14.18,35.35-5.62,6.4-13.8,18.55-14.18,35.35-.24,12.39,4.86,24.29,14.75,34.42,17.81,18.17,49.25,29.01,84.11,29.01,62.29,0,87.95-28.08,96.09-40.15l1.09-1.61-27.32-18.24ZM302.75,327.24c7.74-2.05,15.9-3.09,24.29-3.09,13.03,0,23.67,1.35,31.45,3.09-7.77,1.74-18.45,3.09-31.45,3.09-8.39,0-16.55-1.04-24.29-3.09Z"/>
+              <path d="M104.26,3.94c-54.51,0-98.86,44.35-98.86,98.86,0,54.51,44.35,98.86,98.86,98.86,54.51,0,98.86-44.35,98.86-98.86S158.77,3.94,104.26,3.94ZM170.28,102.8c0,36.41-29.62,66.02-66.02,66.02-36.4,0-66.02-29.62-66.02-66.02,0-36.41,29.62-66.02,66.02-66.02,36.41,0,66.02,29.62,66.02,66.02Z"/>
+              <path d="M104.26,228.34c-54.51,0-98.86,44.35-98.86,98.86,0,54.51,44.35,98.86,98.86,98.86,54.51,0,98.86-44.35,98.86-98.86s-44.35-98.86-98.86-98.86ZM170.28,327.2c0,36.4-29.62,66.02-66.02,66.02-36.4,0-66.02-29.62-66.02-66.02,0-36.41,29.62-66.02,66.02-66.02,36.41,0,66.02,29.62,66.02,66.02Z"/>
+              <path d="M388.15,11.79v58.15c-38.1-19.35-85.01-19.35-123.11-.02V11.79s-32.84,0-32.84,0v182.1s32.84,0,32.84,0v-6.89c18.58,9.45,39.62,14.51,61.54,14.51,21.94,0,42.99-5.06,61.58-14.51v6.89h32.84s0-182.1,0-182.1h-32.84ZM265.04,108.64c35.33-27.45,87.78-27.45,123.11,0v39.61c-35.33,27.45-87.79,27.44-123.11,0v-39.6Z"/>
+            </svg>
+            <div style={{ fontSize: '0.75rem', opacity: 0.5 }}>
               {t.footer.copyright}
-           </div>
-           <div style={{ gridColumn: isMobile ? '1 / -1' : '9 / 13', padding: isMobile ? '0 0 0.75rem' : '2rem', fontSize: '0.75rem', textAlign: isMobile ? 'left' : 'right' }}>
-              <a href="https://www.instagram.com/objktt.recordbar" target="_blank" rel="noopener noreferrer" style={{ opacity: 0.5, transition: 'opacity 0.2s', textDecoration: 'none', color: 'inherit' }} onMouseOver={(e) => e.currentTarget.style.opacity = '1'} onMouseOut={(e) => e.currentTarget.style.opacity = '0.5'}>
+            </div>
+          </div>
+
+          {/* Column 2: Contact & Socials */}
+          <div style={{
+            gridColumn: isMobile ? '1 / -1' : '5 / 9',
+            padding: isMobile ? '2rem 1rem 0' : '1.5rem 1rem 4rem',
+            borderTop: !isMobile ? '1px solid var(--color-line)' : 'none',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.75rem', opacity: 0.5, marginBottom: '0.5rem' }}>{t.footer.contact.label}</div>
+              <div style={{ fontSize: '0.875rem', marginBottom: '2rem' }}>
+                <a href={`mailto:${t.footer.contact.email}`} style={{ color: 'inherit', textDecoration: 'none', display: 'block', marginBottom: '0.25rem' }}>
+                  {t.footer.contact.email}
+                </a>
+                <a href={`tel:${t.footer.contact.phone}`} style={{ color: 'inherit', textDecoration: 'none', display: 'block' }}>
+                  {t.footer.contact.phone}
+                </a>
+              </div>
+            </div>
+
+            {/* Socials moved here */}
+            <div style={{ fontSize: '0.875rem', display: 'flex', gap: '1rem' }}>
+              <a href="https://www.instagram.com/objktt.recordbar" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit', outline: 'none' }}>
                 Instagram
               </a>
-              <span style={{ margin: '0 1rem', opacity: 0.3 }}>/</span>
-              <a href="https://soundcloud.com/objktt_recordbar" target="_blank" rel="noopener noreferrer" style={{ opacity: 0.5, transition: 'opacity 0.2s', textDecoration: 'none', color: 'inherit' }} onMouseOver={(e) => e.currentTarget.style.opacity = '1'} onMouseOut={(e) => e.currentTarget.style.opacity = '0.5'}>
+              <a href="https://soundcloud.com/objktt_recordbar" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit', outline: 'none' }}>
                 SoundCloud
               </a>
-           </div>
+            </div>
+          </div>
+
+          {/* Column 3: Hours Only */}
+          <div style={{
+             gridColumn: isMobile ? '1 / -1' : '9 / 13',
+             padding: isMobile ? '2rem 1rem 2rem' : '1.5rem 1rem 4rem',
+             borderTop: !isMobile ? '1px solid var(--color-line)' : 'none',
+             display: 'flex',
+             flexDirection: 'column',
+             justifyContent: 'space-between'
+          }}>
+            <div style={{ marginBottom: isMobile ? '2rem' : '0' }}>
+              <div style={{ fontSize: '0.75rem', opacity: 0.5, marginBottom: '0.5rem' }}>{t.footer.hours.label}</div>
+              <div style={{ fontSize: '0.875rem', whiteSpace: 'pre-line', lineHeight: 1.5 }}>
+                {t.footer.hours.value}
+              </div>
+            </div>
+          </div>
         </Grid>
       </footer>
     </div>

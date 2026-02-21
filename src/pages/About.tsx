@@ -84,25 +84,13 @@ const About: React.FC = () => {
               fontWeight: 500, 
               color: 'inherit', 
               textDecoration: 'none', 
-              borderBottom: '1px solid currentColor', 
+              borderBottom: '1px solid var(--color-line)', 
               paddingBottom: '0.2rem' 
           }}>
             {t.about.contactBtn} &rarr;
           </a>
         </div>
 
-        {/* Google Map */}
-        <div style={{ gridColumn: '2 / 12', marginBottom: '8rem', height: '400px' }}>
-            <iframe 
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3162.915729994784!2d126.9856344!3d37.5617842!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x357ca3e87dec1ac5%3A0xe8e28d09b3cb5c03!2z7Jik67iM6KCc7Yq4IOugiOy9lOuTnOuwlCAvIE9iamt0dCBSZWNvcmQgQmFy!5e0!3m2!1sen!2skr!4v1709650000000!5m2!1sen!2skr" 
-                width="100%" 
-                height="100%" 
-                style={{ border: 0 }} 
-                allowFullScreen={true} 
-                loading="lazy" 
-                referrerPolicy="no-referrer-when-downgrade"
-            ></iframe>
-        </div>
 
       </Grid>
     </div>

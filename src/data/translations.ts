@@ -3,11 +3,23 @@ export const translations = {
     nav: {
       index: 'Index',
       about: 'About',
+      menu: 'Menu',
+      music: 'Music',
       events: 'Events',
       contact: 'Contact',
+      tagline: 'Based in Seoul, South Korea',
     },
     footer: {
-      copyright: '© 2026 OBJKTT. Cultural Record Bar.',
+      copyright: '© 2026 Objktt Seoul. All rights reserved.',
+      contact: {
+        label: 'Contact',
+        email: 'hello@objktt.kr',
+        phone: '+82 10-1234-5678',
+      },
+      hours: {
+        label: 'Opening Hours',
+        value: 'Tue–Fri | 5pm–11:30pm\nSat | 4pm–11:30pm\nSun | 4pm–11:00pm\nMon off',
+      }
     },
     home: {
       heroTitle: 'A listening space for records, taste, and connection.',
@@ -52,11 +64,23 @@ export const translations = {
     nav: {
       index: 'Index',
       about: 'About',
+      menu: 'Menu',
+      music: 'Music',
       events: 'Events',
       contact: 'Contact',
+      tagline: 'Based in Seoul, South Korea',
     },
     footer: {
-      copyright: '© 2026 OBJKTT. Cultural Record Bar.',
+      copyright: '© 2026 Objktt Seoul. All rights reserved.',
+      contact: {
+        label: 'Contact',
+        email: 'hello@objktt.kr',
+        phone: '+82 10-1234-5678',
+      },
+      hours: {
+        label: 'Opening Hours',
+        value: 'Tue–Fri | 5pm–11:30pm\nSat | 4pm–11:30pm\nSun | 4pm–11:00pm\nMon off',
+      }
     },
     home: {
       heroTitle: 'A listening space for records, taste, and connection.',
