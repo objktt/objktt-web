@@ -346,7 +346,7 @@ const ScrollPath: React.FC = () => {
             }
             gsap.to(el, { xPercent: -50, yPercent: -50, rotation: 0, duration: 0.6, ease: 'power2.in' });
           } else {
-            gsap.to(el, { xPercent: -50, yPercent: -50, rotation: 0, duration: 0.3, ease: 'power2.in', onComplete: () => gsap.set(el, { opacity: 0 }) });
+            gsap.to(el, { xPercent: -50, yPercent: -50, rotation: 0, duration: 0.3, ease: 'power2.in', onComplete: () => { gsap.set(el, { opacity: 0 }); } });
           }
         }
       }
