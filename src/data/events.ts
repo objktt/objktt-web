@@ -8,7 +8,7 @@ export interface Event {
   date: string;
   title: string;
   type: string;
-  description: string;
+  description: { en: string; ko: string };
   script: string;
   poster?: string;
 }
@@ -20,7 +20,7 @@ export const events: Event[] = [
     date: '2025.12.05',
     title: 'Objktt Invite: Carozilla',
     type: 'INVITE',
-    description: 'Objktt Invite @ Objktt Record Bar, 21:00–23:00',
+    description: { en: 'Objktt Invite DJ session, 21:00–23:00', ko: '오브옉트 레코드바 초대 DJ 세션, 21:00–23:00' },
     script: 'wave.js',
     poster: poster251205,
   },
@@ -29,7 +29,7 @@ export const events: Event[] = [
     date: '2025.12.06',
     title: 'Kimgunho and Rapbong',
     type: 'LISTENING SESSION',
-    description: 'Objktt Listening Session @ Objktt Record Bar, 21:00–23:00',
+    description: { en: 'Objktt Listening Session, 21:00–23:00', ko: '오브옉트 리스닝 세션, 21:00–23:00' },
     script: 'wave.js',
     poster: poster251206,
   },
@@ -38,7 +38,7 @@ export const events: Event[] = [
     date: '2025.12.12',
     title: 'Matteo Floris · Rocket · Mingsturn',
     type: 'SELEKTT',
-    description: 'Objktt Selektt @ Objktt Record Bar, from 9pm',
+    description: { en: 'Objktt Selektt, from 9pm', ko: '오브옉트 셀렉트, 오후 9시부터' },
     script: 'wave.js',
     poster: poster251212,
   },
@@ -47,7 +47,7 @@ export const events: Event[] = [
     date: '2025.12.21',
     title: 'Objktt Invite: Makoto Sakamoto',
     type: 'INVITE',
-    description: 'Objktt Invite @ Objktt Record Bar, 21:00–23:00',
+    description: { en: 'Objktt Invite DJ session, 21:00–23:00', ko: '오브옉트 레코드바 초대 DJ 세션, 21:00–23:00' },
     script: 'wave.js',
     poster: poster251221,
   },
@@ -57,7 +57,7 @@ export const events: Event[] = [
     date: '2026.03.01',
     title: 'Birthday Bash',
     type: 'KLANG',
-    description: '',
+    description: { en: 'Objktt 1st anniversary party', ko: '오브옉트 1주년 파티' },
     script: 'wave.js'
   },
   {
@@ -65,7 +65,7 @@ export const events: Event[] = [
     date: '2026.03.07',
     title: 'KLANG',
     type: 'KLANG',
-    description: '',
+    description: { en: 'Weekly Saturday DJ session', ko: '매주 토요일 DJ 세션' },
     script: 'wave.js'
   },
   {
@@ -73,7 +73,7 @@ export const events: Event[] = [
     date: '2026.03.08',
     title: 'KOLLEKTION 002',
     type: 'KOLLEKTION',
-    description: '10 Records · 1 Collector · 1 Theme',
+    description: { en: '10 Records · 1 Collector · 1 Theme', ko: '레코드 10장 · 콜렉터 1명 · 테마 1개' },
     script: 'noise.js'
   },
   {
@@ -81,7 +81,7 @@ export const events: Event[] = [
     date: '2026.03.14',
     title: 'KLANG',
     type: 'KLANG',
-    description: '',
+    description: { en: 'Weekly Saturday DJ session', ko: '매주 토요일 DJ 세션' },
     script: 'wave.js'
   },
   {
@@ -89,7 +89,7 @@ export const events: Event[] = [
     date: '2026.03.15',
     title: 'KOLLEKTION 003',
     type: 'KOLLEKTION',
-    description: '10 Records · 1 Collector · 1 Theme',
+    description: { en: '10 Records · 1 Collector · 1 Theme', ko: '레코드 10장 · 콜렉터 1명 · 테마 1개' },
     script: 'noise.js'
   },
   {
@@ -97,7 +97,7 @@ export const events: Event[] = [
     date: '2026.03.21',
     title: 'KLANG',
     type: 'KLANG',
-    description: '',
+    description: { en: 'Weekly Saturday DJ session', ko: '매주 토요일 DJ 세션' },
     script: 'wave.js'
   },
   {
@@ -105,7 +105,7 @@ export const events: Event[] = [
     date: '2026.03.22',
     title: 'KOLLEKTION 004',
     type: 'KOLLEKTION',
-    description: '10 Records · 1 Collector · 1 Theme',
+    description: { en: '10 Records · 1 Collector · 1 Theme', ko: '레코드 10장 · 콜렉터 1명 · 테마 1개' },
     script: 'noise.js'
   },
   {
@@ -113,7 +113,7 @@ export const events: Event[] = [
     date: '2026.03.28',
     title: 'KLANG',
     type: 'KLANG',
-    description: '',
+    description: { en: 'Weekly Saturday DJ session', ko: '매주 토요일 DJ 세션' },
     script: 'wave.js'
   },
   {
@@ -121,7 +121,7 @@ export const events: Event[] = [
     date: '2026.03.29',
     title: 'KOLLEKTION 005',
     type: 'KOLLEKTION',
-    description: '10 Records · 1 Collector · 1 Theme',
+    description: { en: '10 Records · 1 Collector · 1 Theme', ko: '레코드 10장 · 콜렉터 1명 · 테마 1개' },
     script: 'noise.js'
   },
 ];

@@ -142,7 +142,7 @@ const Menu: React.FC = () => {
       <section>
         {/* Section Title */}
         <div style={{
-          padding: `${isMobile ? '3rem' : '5rem'} ${isMobile ? '1.5rem' : '4rem'} ${isMobile ? '2rem' : '3rem'}`,
+          padding: `${isMobile ? '5rem' : '7rem'} ${isMobile ? '1.5rem' : '4rem'} ${isMobile ? '2rem' : '3rem'}`,
         }}>
           <h2 style={{
             fontSize: isMobile ? '10vw' : 'clamp(3rem, 6vw, 6.5rem)',

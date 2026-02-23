@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import Grid from '../components/GridSystem';
 import emailjs from '@emailjs/browser';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useBreakpoint } from '../hooks/useBreakpoint';
 
 const Contact: React.FC = () => {
   const formRef = useRef<HTMLFormElement>(null);
@@ -12,6 +13,7 @@ const Contact: React.FC = () => {
   });
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const { t } = useLanguage();
+  const { isMobile } = useBreakpoint();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,27 +61,23 @@ const Contact: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '4rem 0' }}>
-      <Grid>
-        <div style={{ gridColumn: '2 / 12', marginBottom: '2rem' }}>
-            <a href="/about" style={{ 
-                fontSize: '1rem', 
-                textDecoration: 'none', 
-                color: 'var(--color-text)', 
-                opacity: 0.6,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-            }}>
-                &larr; {t.contact.back}
-            </a>
-        </div>
+    <div style={{ padding: '0 0 4rem 0' }}>
+      {/* Section Title */}
+      <div style={{
+        padding: `${isMobile ? '5rem' : '7rem'} ${isMobile ? '1.5rem' : '4rem'} ${isMobile ? '2rem' : '3rem'}`,
+      }}>
+        <h2 style={{
+          fontSize: isMobile ? '10vw' : 'clamp(3rem, 6vw, 6.5rem)',
+          fontWeight: 500,
+          lineHeight: 0.95,
+          letterSpacing: isMobile ? '-0.03em' : '-0.04em',
+          margin: 0,
+        }}>
+          {t.contact.title}
+        </h2>
+      </div>
 
-        <div style={{ gridColumn: '2 / 12', marginBottom: '4rem' }}>
-          <h2 className="page-heading" style={{ fontSize: '3.5rem', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
-            {t.contact.title}
-          </h2>
-        </div>
+      <Grid>
 
         <div style={{ gridColumn: '2 / 8' }}>
           <form ref={formRef} onSubmit={handleSubmit}>

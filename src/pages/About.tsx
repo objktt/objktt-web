@@ -1,6 +1,7 @@
 import React from 'react';
 import Grid from '../components/GridSystem';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useBreakpoint } from '../hooks/useBreakpoint';
 
 import img1 from '../assets/img/objktt/DSC00876.JPEG';
 import img2 from '../assets/img/objktt/DSC00885.JPEG';
@@ -10,16 +11,27 @@ import img5 from '../assets/img/objktt/DSC00926.JPEG';
 
 const About: React.FC = () => {
   const { t } = useLanguage();
+  const { isMobile } = useBreakpoint();
 
   return (
     <div style={{ padding: '0 0 8rem 0' }}>
+      {/* Section Title */}
+      <div style={{
+        padding: `${isMobile ? '5rem' : '7rem'} ${isMobile ? '1.5rem' : '4rem'} ${isMobile ? '2rem' : '3rem'}`,
+      }}>
+        <h2 style={{
+          fontSize: isMobile ? '10vw' : 'clamp(3rem, 6vw, 6.5rem)',
+          fontWeight: 500,
+          lineHeight: 0.95,
+          letterSpacing: isMobile ? '-0.03em' : '-0.04em',
+          margin: 0,
+          whiteSpace: 'pre-line',
+        }}>
+          {t.about.title}
+        </h2>
+      </div>
+
       <Grid>
-        {/* Title Section */}
-        <div style={{ gridColumn: '2 / 8', marginTop: '6rem', marginBottom: '4rem' }}>
-          <h2 className="page-heading" style={{ fontSize: '3.5rem', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em', whiteSpace: 'pre-line' }}>
-            {t.about.title}
-          </h2>
-        </div>
 
         {/* Large Hero Image */}
         <div style={{ gridColumn: '6 / 13', marginBottom: '6rem' }}>

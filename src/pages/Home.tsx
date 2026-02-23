@@ -122,7 +122,7 @@ const Home: React.FC = () => {
       {/* ─── About Section ─── */}
       <section style={{ position: 'relative' }}>
         <div style={stickyBar}>
-          <div style={stickyInner}><span style={{ opacity: 0.5 }}>About Objktt</span></div>
+          <div style={stickyInner}><span style={{ opacity: 0.5 }}>{t.home.stickyAbout}</span></div>
         </div>
 
         <AboutSection />
@@ -137,7 +137,7 @@ const Home: React.FC = () => {
             justifyContent: 'space-between',
             alignItems: 'center',
           }}>
-            <span style={{ opacity: 0.5 }}>Upcoming Events</span>
+            <span style={{ opacity: 0.5 }}>{t.home.stickyEvents}</span>
             <Link to="/events" style={{
               fontSize: '0.75rem',
               fontWeight: 500,
@@ -216,7 +216,7 @@ const Home: React.FC = () => {
                 textTransform: 'uppercase',
                 opacity: 0.3,
                 zIndex: 1,
-              }}>Coming Soon</span>
+              }}>{t.home.comingSoon}</span>
               <div style={{ position: 'relative', zIndex: 1 }}>
                 <div style={{
                   fontSize: '0.875rem',
@@ -279,7 +279,7 @@ const Home: React.FC = () => {
                   textTransform: 'uppercase',
                   opacity: 0.3,
                   zIndex: 1,
-                }}>Coming Soon</span>
+                }}>{t.home.comingSoon}</span>
                 <div style={{ position: 'relative', zIndex: 1 }}>
                   <div style={{
                     fontSize: '0.75rem',
@@ -306,7 +306,7 @@ const Home: React.FC = () => {
       {/* ─── Map Section ─── */}
       <section>
         <div style={stickyBar}>
-          <div style={stickyInner}><span style={{ opacity: 0.5 }}>We Are Here</span></div>
+          <div style={stickyInner}><span style={{ opacity: 0.5 }}>{t.home.stickyLocation}</span></div>
         </div>
 
         {/* Section Title */}
@@ -334,10 +334,12 @@ const Home: React.FC = () => {
             opacity: 0.5,
             margin: 0,
           }}>
-            Yes, we're on the 4th floor — no elevator.<br />
-            But the climb is worth it.<br />
-            Warm light, good sound, and a space<br />
-            that feels like a deep breath.
+            {t.home.locationDesc.split('\n').map((line, i) => (
+              <React.Fragment key={i}>
+                {line}
+                {i < t.home.locationDesc.split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
           </p>
         </div>
 
@@ -375,10 +377,12 @@ const Home: React.FC = () => {
               Public Transit
             </div>
             <p style={{ fontSize: '0.9375rem', lineHeight: 1.7, opacity: 0.8 }}>
-              Line 4, Myeongdong Station Exit 10.{<br />}
-              Walk straight for about 3 minutes,{<br />}
-              then enter the building on your left.{<br />}
-              4F — no elevator.
+              {t.home.transitDesc.split('\n').map((line, i) => (
+                <React.Fragment key={i}>
+                  {line}
+                  {i < t.home.transitDesc.split('\n').length - 1 && <br />}
+                </React.Fragment>
+              ))}
             </p>
           </div>
 
@@ -395,9 +399,12 @@ const Home: React.FC = () => {
               Parking
             </div>
             <p style={{ fontSize: '0.9375rem', lineHeight: 1.7, opacity: 0.8 }}>
-              On-site parking is not available.{<br />}
-              Namsan Square parking garage{<br />}
-              is a short walk away.
+              {t.home.parkingDesc.split('\n').map((line, i) => (
+                <React.Fragment key={i}>
+                  {line}
+                  {i < t.home.parkingDesc.split('\n').length - 1 && <br />}
+                </React.Fragment>
+              ))}
             </p>
           </div>
         </div>
@@ -407,7 +414,7 @@ const Home: React.FC = () => {
       {/* ─── Contact Section ─── */}
       <section style={{ position: 'relative' }}>
         <div style={stickyBar}>
-          <div style={stickyInner}><span style={{ opacity: 0.5 }}>Contact</span></div>
+          <div style={stickyInner}><span style={{ opacity: 0.5 }}>{t.home.stickyContact}</span></div>
         </div>
 
         {/* Section Title */}
@@ -447,7 +454,7 @@ const Home: React.FC = () => {
               opacity: 0.4,
               marginBottom: '0.75rem',
             }}>
-              Contact
+              {t.home.contactLabel}
             </div>
             <form ref={formRef} onSubmit={(e) => {
               e.preventDefault();

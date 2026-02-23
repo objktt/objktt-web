@@ -11,7 +11,7 @@ const Events: React.FC = () => {
   const [filter, setFilter] = useState('All');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('upcoming');
   const [viewMode, setViewMode] = useState<ViewMode>('thumbnail');
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const { isMobile } = useBreakpoint();
 
   const today = new Date();
@@ -306,6 +306,11 @@ const Events: React.FC = () => {
                   <div style={{ fontSize: '1rem', fontWeight: 700 }}>
                     {item.title}
                   </div>
+                  {item.description[language] && (
+                    <div style={{ fontSize: '0.8rem', opacity: 0.5, marginTop: '0.25rem' }}>
+                      {item.description[language]}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -346,6 +351,11 @@ const Events: React.FC = () => {
                     flexGrow: 1,
                   }}>
                     {event.title}
+                    {event.description[language] && (
+                      <span style={{ display: 'block', fontSize: '0.8rem', fontWeight: 400, opacity: 0.5, marginTop: '0.25rem' }}>
+                        {event.description[language]}
+                      </span>
+                    )}
                   </span>
                   <span style={{ fontSize: '1rem', opacity: 0.6 }}>
                     {event.type}
