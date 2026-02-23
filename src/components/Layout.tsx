@@ -215,6 +215,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <NavLink to="/menu" className={({ isActive }) => isActive ? "active-link" : ""} style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t.nav.menu}</NavLink>
                 <NavLink to="/music" className={({ isActive }) => isActive ? "active-link" : ""} style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t.nav.music}</NavLink>
                 <NavLink to="/events" className={({ isActive }) => isActive ? "active-link" : ""} style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t.nav.events}</NavLink>
+                <NavLink to="/shop" className={({ isActive }) => isActive ? "active-link" : ""} style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t.nav.shop}</NavLink>
 
                 <button
                   onClick={toggleLanguage}
@@ -246,6 +247,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <NavLink to="/menu" onClick={() => setMenuOpen(false)} style={{ fontSize: '2rem', fontWeight: 500 }}>{t.nav.menu}</NavLink>
           <NavLink to="/music" onClick={() => setMenuOpen(false)} style={{ fontSize: '2rem', fontWeight: 500 }}>{t.nav.music}</NavLink>
           <NavLink to="/events" onClick={() => setMenuOpen(false)} style={{ fontSize: '2rem', fontWeight: 500 }}>{t.nav.events}</NavLink>
+          <NavLink to="/shop" onClick={() => setMenuOpen(false)} style={{ fontSize: '2rem', fontWeight: 500 }}>{t.nav.shop}</NavLink>
         </div>
       )}
 

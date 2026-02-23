@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import gsap from 'gsap';
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import BayerDither from './BayerDither';
 
 import monsteraSvg from '../assets/svg/monstera.svg';
 import reelSvg from '../assets/svg/reel.svg';
@@ -16,6 +17,7 @@ gsap.registerPlugin(MotionPathPlugin, ScrollTrigger);
 const BRAND_COLOR = '#1119E9';
 // RGB(17, 25, 233) normalized: r=0.067, g=0.098, b=0.914
 const COLOR_MATRIX = '0 0 0 0 0.067 0 0 0 0 0.098 0 0 0 0 0.914 0 0 0 1 0';
+
 
 const POINT_SVGS: Record<number, string> = {
   0: monsteraSvg,
@@ -102,7 +104,7 @@ interface SvgObjectProps {
   objRef: (el: HTMLDivElement | null) => void;
 }
 
-const SvgObject: React.FC<SvgObjectProps> = ({ src, x, y, size, zIndex = 12, objRef }) => {
+const SvgObject: React.FC<SvgObjectProps> = ({ src, x, y, size, zIndex = 12, objRef, index }) => {
   const innerRef = useRef<HTMLDivElement>(null);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -144,19 +146,12 @@ const SvgObject: React.FC<SvgObjectProps> = ({ src, x, y, size, zIndex = 12, obj
           perspective: '800px',
           transition: 'transform 0.15s ease-out',
           position: 'relative',
-          animation: 'svgFloat 4s ease-in-out infinite',
+          animation: index === 6
+            ? 'svgFloat 4s ease-in-out infinite, recordSpinY 6s linear infinite'
+            : 'svgFloat 4s ease-in-out infinite',
         }}
       >
-        <img
-          src={src}
-          alt=""
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'contain',
-            filter: `url(#svg-recolor)`,
-          }}
-        />
+        <BayerDither src={src} width={size} height={size} />
       </div>
     </div>
   );
@@ -305,21 +300,6 @@ const ScrollPath: React.FC = () => {
           gsap.set(el, { opacity: 1 });
 
           if (i === 0) {
-            // Dither reveal: animate filter threshold from hidden to fully visible
-            const img = el.querySelector('img') as HTMLElement | null;
-            const funcR = document.getElementById('dither-r');
-            const funcG = document.getElementById('dither-g');
-            const funcB = document.getElementById('dither-b');
-            if (img && funcR && funcG && funcB) {
-              img.style.filter = 'url(#dither-fx)';
-              gsap.set([funcR, funcG, funcB], { attr: { intercept: -19 } });
-              gsap.to([funcR, funcG, funcB], {
-                attr: { intercept: 1 },
-                duration: 1.2,
-                ease: 'power2.out',
-                onComplete: () => { img.style.filter = 'url(#svg-recolor)'; },
-              });
-            }
             gsap.to(el, { xPercent: -50, yPercent: -50, rotation: rot, duration: 1.2, ease: 'power2.out' });
           } else {
             gsap.to(el, { xPercent: -50, yPercent: -50, rotation: rot, duration: 0.5, ease: 'power2.out' });
@@ -329,22 +309,7 @@ const ScrollPath: React.FC = () => {
           gsap.killTweensOf(el);
 
           if (i === 0) {
-            // Dither dissolve: reverse the threshold
-            const img = el.querySelector('img') as HTMLElement | null;
-            const funcR = document.getElementById('dither-r');
-            const funcG = document.getElementById('dither-g');
-            const funcB = document.getElementById('dither-b');
-            if (img && funcR && funcG && funcB) {
-              img.style.filter = 'url(#dither-fx)';
-              gsap.set([funcR, funcG, funcB], { attr: { intercept: 1 } });
-              gsap.to([funcR, funcG, funcB], {
-                attr: { intercept: -19 },
-                duration: 0.6,
-                ease: 'power2.in',
-                onComplete: () => { gsap.set(el, { opacity: 0 }); img.style.filter = 'url(#svg-recolor)'; },
-              });
-            }
-            gsap.to(el, { xPercent: -50, yPercent: -50, rotation: 0, duration: 0.6, ease: 'power2.in' });
+            gsap.to(el, { xPercent: -50, yPercent: -50, rotation: 0, duration: 0.6, ease: 'power2.in', onComplete: () => { gsap.set(el, { opacity: 0 }); } });
           } else {
             gsap.to(el, { xPercent: -50, yPercent: -50, rotation: 0, duration: 0.3, ease: 'power2.in', onComplete: () => { gsap.set(el, { opacity: 0 }); } });
           }
@@ -380,18 +345,6 @@ const ScrollPath: React.FC = () => {
         <defs>
           <filter id="svg-recolor" colorInterpolationFilters="sRGB">
             <feColorMatrix type="matrix" values={COLOR_MATRIX} />
-          </filter>
-          <filter id="dither-fx" x="0%" y="0%" width="100%" height="100%" colorInterpolationFilters="sRGB">
-            <feColorMatrix type="matrix" values={COLOR_MATRIX} result="colored" />
-            <feTurbulence type="fractalNoise" baseFrequency="4" numOctaves="4" seed="42" result="noise" />
-            <feComponentTransfer in="noise" result="mask">
-              <feFuncR id="dither-r" type="linear" slope="20" intercept="-19" />
-              <feFuncG id="dither-g" type="linear" slope="20" intercept="-19" />
-              <feFuncB id="dither-b" type="linear" slope="20" intercept="-19" />
-              <feFuncA type="linear" slope="0" intercept="1" />
-            </feComponentTransfer>
-            <feColorMatrix in="mask" type="luminanceToAlpha" result="alphaMask" />
-            <feComposite in="colored" in2="alphaMask" operator="in" />
           </filter>
         </defs>
       </svg>

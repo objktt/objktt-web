@@ -6,6 +6,7 @@ import Events from './pages/Events'
 import Contact from './pages/Contact'
 import Menu from './pages/Menu'
 import Music from './pages/Music'
+import Shop from './pages/Shop'
 import { LanguageProvider } from './contexts/LanguageContext'
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
           <Route path="/menu" element={<Menu />} />
           <Route path="/music" element={<Music />} />
           <Route path="/events" element={<Events />} />
+          <Route path="/shop" element={<Shop />} />
           <Route path="/contact" element={<Contact />} />
         </Routes>
       </Layout>

@@ -6,8 +6,9 @@ export const translations = {
       menu: 'Menu',
       music: 'Music',
       events: 'Events',
+      shop: 'Shop',
       contact: 'Contact',
-      tagline: 'Based in Seoul, South Korea',
+      tagline: 'Based in Seoul, Myeongdong',
     },
     footer: {
       copyright: '© 2026 Objktt Seoul. All rights reserved.',
@@ -22,7 +23,7 @@ export const translations = {
       }
     },
     home: {
-      heroTitle: 'A listening space for records, taste, and connection.',
+      heroTitle: 'A cozy space for records, taste, and connection.',
       heroBody: 'We believe music needs time.\nPeople need air.\nObjects carry memory.',
       filterAll: 'All',
     },
@@ -67,8 +68,9 @@ export const translations = {
       menu: 'Menu',
       music: 'Music',
       events: 'Events',
+      shop: 'Shop',
       contact: 'Contact',
-      tagline: 'Based in Seoul, South Korea',
+      tagline: 'Based in Seoul, Myeongdong',
     },
     footer: {
       copyright: '© 2026 Objktt Seoul. All rights reserved.',
@@ -83,7 +85,7 @@ export const translations = {
       }
     },
     home: {
-      heroTitle: 'A listening space for records, taste, and connection.',
+      heroTitle: 'A cozy space for records, taste, and connection.',
       heroBody: '음악에는 시간이 필요합니다.\n사람에게는 여백이 필요합니다.\n사물에는 기억이 깃듭니다.',
       filterAll: 'All',
     },

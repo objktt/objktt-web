@@ -1,10 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 
+import imgObjktt from '../assets/img/menu/obj_objktt.jpeg';
+import imgGreen from '../assets/img/menu/obj_green.jpeg';
+import imgBasil from '../assets/img/menu/obj_basil.jpeg';
+import imgStrawberry from '../assets/img/menu/obj_strawberry.jpeg';
+import imgKalimcho from '../assets/img/menu/obj_kalimcho.jpeg';
+import imgPlate from '../assets/img/menu/obj_plate.jpeg';
+import imgPizza from '../assets/img/menu/obj_pizza.jpeg';
+import imgBanana from '../assets/img/menu/obj_banana.jpeg';
+import imgSorbet from '../assets/img/menu/obj_sorbet.jpeg';
+import imgPopcorn from '../assets/img/menu/obj_popcorn.jpeg';
+import imgIcecreamcake from '../assets/img/menu/obj_icecreamcake.jpeg';
+
 interface MenuItem {
   name: string;
   nameKr?: string;
   description?: string;
+  image?: string;
 }
 
 interface MenuCategory {
@@ -16,15 +29,15 @@ const menuData: MenuCategory[] = [
   {
     title: 'Cocktail',
     items: [
-      { name: 'Objktt Cocktail', nameKr: '오브옉트 칵테일', description: 'Vodka, Lemon, Tea, Mint and Spice — our signature' },
-      { name: 'We Are Green Cocktail', nameKr: '위아 그린 칵테일', description: 'Gin, Green Grape and Rosemary — our 2nd signature' },
-      { name: 'Objktt Basil Smash', nameKr: '오브옉트 바질 스매쉬', description: 'Gin, Basil, Lemon and a Tomato Twist' },
-      { name: 'Strawberry Mojito', nameKr: '딸기 모히또', description: 'Strawberry Mojito with Gin or Vodka' },
+      { name: 'Objktt Cocktail', nameKr: '오브옉트 칵테일', description: 'Vodka, Lemon, Tea, Mint and Spice — our signature', image: imgObjktt },
+      { name: 'We Are Green Cocktail', nameKr: '위아 그린 칵테일', description: 'Gin, Green Grape and Rosemary — our 2nd signature', image: imgGreen },
+      { name: 'Objktt Basil Smash', nameKr: '오브옉트 바질 스매쉬', description: 'Gin, Basil, Lemon and a Tomato Twist', image: imgBasil },
+      { name: 'Strawberry Mojito', nameKr: '딸기 모히또', description: 'Strawberry Mojito with Gin or Vodka', image: imgStrawberry },
       { name: 'Negroni', nameKr: '네그로니', description: 'Gin, Campari and Sweet Vermouth with a Cinnamon Stick' },
       { name: 'Dirty Gin Fizz', nameKr: '더티 진 피즈', description: 'Gin, Lemon Syrup, Olive Brine and Soda with an Olive Garnish' },
       { name: 'Gin Tonic', nameKr: '진 토닉', description: 'Gin with Tonic Water or Sparkling Water' },
       { name: 'Highball', nameKr: '하이볼', description: 'Clean and crisp highball, available with whiskey' },
-      { name: 'Calimocho', nameKr: '칼리모초', description: 'Citrusy Non-Alcoholic Wine Cocktail. Non-Alcoholic version available.' },
+      { name: 'Calimocho', nameKr: '칼리모초', description: 'Citrusy Non-Alcoholic Wine Cocktail. Non-Alcoholic version available.', image: imgKalimcho },
     ],
   },
   {
@@ -72,17 +85,17 @@ const menuData: MenuCategory[] = [
   {
     title: 'Food',
     items: [
-      { name: 'Objktt Plate', nameKr: '오브옉트 플레이트', description: 'Tomato, Cheese and Olive' },
-      { name: 'Objktt Slice Pizza', nameKr: '오브옉트 조각 피자', description: 'A one-quarter classic Margherita-style slice topped with fresh basil' },
+      { name: 'Objktt Plate', nameKr: '오브옉트 플레이트', description: 'Tomato, Cheese and Olive', image: imgPlate },
+      { name: 'Objktt Slice Pizza', nameKr: '오브옉트 조각 피자', description: 'A one-quarter classic Margherita-style slice topped with fresh basil', image: imgPizza },
       { name: 'Tomato Coriander Ramen', nameKr: '토마토 고수 라면', description: 'Spicy & Tangy Tomato Ramen with Coriander' },
-      { name: 'Banana Cinnamon Brûlée', nameKr: '바나나 시나몬 브륄레', description: 'Caramelized brûlée with sliced bananas and a touch of cinnamon' },
-      { name: 'Strawberry Sorbet', nameKr: '딸기 바나나 샤베', description: 'Strawberry-banana sorbet with a smooth, fruity finish' },
-      { name: 'Truffle Oil Popcorn', nameKr: '트러플 오일 팝콘', description: 'Truffle-scented popcorn, perfect with beer' },
-      { name: 'Ice Cream Pound Cake', nameKr: '아이스크림 파운드 케이크', description: 'Chocolate brownie with vanilla ice cream' },
+      { name: 'Banana Cinnamon Brûlée', nameKr: '바나나 시나몬 브륄레', description: 'Caramelized brûlée with sliced bananas and a touch of cinnamon', image: imgBanana },
+      { name: 'Strawberry Sorbet', nameKr: '딸기 바나나 샤베', description: 'Strawberry-banana sorbet with a smooth, fruity finish', image: imgSorbet },
+      { name: 'Truffle Oil Popcorn', nameKr: '트러플 오일 팝콘', description: 'Truffle-scented popcorn, perfect with beer', image: imgPopcorn },
+      { name: 'Ice Cream Pound Cake', nameKr: '아이스크림 파운드 케이크', description: 'Chocolate brownie with vanilla ice cream', image: imgIcecreamcake },
     ],
   },
   {
-    title: 'Non-Alcoholic',
+    title: 'Liquor',
     items: [
       { name: 'Gin Tanqueray', nameKr: '진 탱커레이' },
       { name: 'Tequila Sierra Reposado Shot', nameKr: '데킬라 시에라 레포사도 샷' },
@@ -104,25 +117,16 @@ const Menu: React.FC = () => {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, [isMobile]);
 
-  const stickyBar: React.CSSProperties = {
-    position: 'sticky',
-    top: 'var(--header-height)',
-    zIndex: 50,
-    backgroundColor: 'var(--color-bg)',
+  const getHoveredImage = (): string | undefined => {
+    for (const category of menuData) {
+      const item = category.items.find((i) => i.name === hoveredItem);
+      if (item?.image) return item.image;
+    }
+    return undefined;
   };
 
-  const stickyInner: React.CSSProperties = {
-    width: 'calc(100% - 4rem)',
-    margin: '0 2rem',
-    padding: isMobile ? '0.625rem 0' : '0.625rem 2rem',
-    borderTop: '1px solid var(--color-line)',
-    borderBottom: '1px solid var(--color-line)',
-    fontSize: '0.75rem',
-    fontWeight: 500,
-    letterSpacing: '0.08em',
-    textTransform: 'uppercase',
-    color: 'var(--color-text)',
-  };
+  const hoveredImage = hoveredItem ? getHoveredImage() : undefined;
+
 
   const categoryLabel: React.CSSProperties = {
     fontSize: '0.6875rem',
@@ -136,12 +140,6 @@ const Menu: React.FC = () => {
   return (
     <div style={{ paddingBottom: '4rem' }}>
       <section>
-        <div style={stickyBar}>
-          <div style={stickyInner}>
-            <span style={{ opacity: 0.5 }}>Menu</span>
-          </div>
-        </div>
-
         {/* Section Title */}
         <div style={{
           padding: `${isMobile ? '3rem' : '5rem'} ${isMobile ? '1.5rem' : '4rem'} ${isMobile ? '2rem' : '3rem'}`,
@@ -210,41 +208,29 @@ const Menu: React.FC = () => {
       </section>
 
       {/* Cursor-following image (desktop only) */}
-      {!isMobile && hoveredItem && (
+      {!isMobile && hoveredItem && hoveredImage && (
         <div
           style={{
             position: 'fixed',
             left: mousePos.x + 20,
             top: mousePos.y - 100,
-            width: '200px',
-            height: '250px',
+            width: '320px',
+            height: '400px',
             pointerEvents: 'none',
             zIndex: 999,
             overflow: 'hidden',
             transition: 'opacity 0.15s ease',
           }}
         >
-          {/* Mockup placeholder — replace with real images */}
-          <div style={{
-            width: '100%',
-            height: '100%',
-            backgroundColor: 'var(--color-text)',
-            opacity: 0.08,
-            border: '1px solid var(--color-line)',
-          }} />
-          <div style={{
-            position: 'absolute',
-            bottom: '0.75rem',
-            left: '0.75rem',
-            right: '0.75rem',
-            fontSize: '0.625rem',
-            fontWeight: 500,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            opacity: 0.3,
-          }}>
-            {hoveredItem}
-          </div>
+          <img
+            src={hoveredImage}
+            alt={hoveredItem}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
         </div>
       )}
     </div>

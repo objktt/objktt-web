@@ -1,3 +1,8 @@
+import poster251205 from '../assets/poster/251205.jpg';
+import poster251206 from '../assets/poster/251206.jpg';
+import poster251212 from '../assets/poster/251212.jpg';
+import poster251221 from '../assets/poster/251221.jpg';
+
 export interface Event {
   id: string;
   date: string;
@@ -5,34 +10,46 @@ export interface Event {
   type: string;
   description: string;
   script: string;
+  poster?: string;
 }
 
 export const events: Event[] = [
-  // Past events
+  // Past events — December 2025
   {
-    id: 'evt-001',
-    date: '2025.12.24',
-    title: 'Sound Structure I',
-    type: 'KLANG',
-    description: 'An exploration of acoustic architectural space.',
-    script: 'wave.js'
+    id: 'evt-p01',
+    date: '2025.12.05',
+    title: 'Objktt Invite: Carozilla',
+    type: 'INVITE',
+    description: 'Objktt Invite @ Objktt Record Bar, 21:00–23:00',
+    script: 'wave.js',
+    poster: poster251205,
   },
   {
-    id: 'evt-002',
-    date: '2026.01.15',
-    title: 'Static / Noise',
-    type: 'KOLLEKTION',
-    description: 'Visualizing distinct frequencies of digital noise.',
-    script: 'noise.js'
+    id: 'evt-p02',
+    date: '2025.12.06',
+    title: 'Kimgunho and Rapbong',
+    type: 'LISTENING SESSION',
+    description: 'Objktt Listening Session @ Objktt Record Bar, 21:00–23:00',
+    script: 'wave.js',
+    poster: poster251206,
   },
-  // February 2026
   {
-    id: 'evt-003',
-    date: '2026.02.22',
-    title: 'KOLLEKTION 001',
-    type: 'KOLLEKTION',
-    description: '10 Records · 1 Collector · 1 Theme',
-    script: 'noise.js'
+    id: 'evt-p03',
+    date: '2025.12.12',
+    title: 'Matteo Floris · Rocket · Mingsturn',
+    type: 'SELEKTT',
+    description: 'Objktt Selektt @ Objktt Record Bar, from 9pm',
+    script: 'wave.js',
+    poster: poster251212,
+  },
+  {
+    id: 'evt-p04',
+    date: '2025.12.21',
+    title: 'Objktt Invite: Makoto Sakamoto',
+    type: 'INVITE',
+    description: 'Objktt Invite @ Objktt Record Bar, 21:00–23:00',
+    script: 'wave.js',
+    poster: poster251221,
   },
   // March 2026
   {

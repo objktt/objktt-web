@@ -1,6 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import PosterStage from '../components/PosterStage';
+import React, { useState } from 'react';
 import { events } from '../data/events';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
@@ -9,17 +7,6 @@ type ViewMode = 'thumbnail' | 'list';
 type TimeFilter = 'upcoming' | 'past';
 
 const Events: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [activePoster, setActivePoster] = useState<string | null>(null);
-
-  useEffect(() => {
-    const eventId = searchParams.get('event');
-    if (eventId) {
-      const event = events.find(e => e.id === eventId);
-      if (event) setActivePoster(event.script);
-      setSearchParams({}, { replace: true });
-    }
-  }, []);
   const [activeItem, setActiveItem] = useState<string | null>(null);
   const [filter, setFilter] = useState('All');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('upcoming');
@@ -57,66 +44,41 @@ const Events: React.FC = () => {
     return `${dateStr} (${days[d.getDay()]})`;
   };
 
-  const stickyBar: React.CSSProperties = {
-    position: 'sticky',
-    top: 'var(--header-height)',
-    zIndex: 50,
-    backgroundColor: 'var(--color-bg)',
-  };
-
-  const stickyInner: React.CSSProperties = {
-    width: 'calc(100% - 4rem)',
-    margin: '0 2rem',
-    padding: isMobile ? '0.625rem 0' : '0.625rem 2rem',
-    borderTop: '1px solid var(--color-line)',
-    borderBottom: '1px solid var(--color-line)',
-    fontSize: '0.75rem',
-    fontWeight: 500,
-    letterSpacing: '0.08em',
-    textTransform: 'uppercase',
-    color: 'var(--color-text)',
-  };
 
   return (
     <>
       <div style={{ paddingBottom: '4rem' }}>
         <section>
-          {/* Sticky Bar */}
-          <div style={stickyBar}>
-            <div style={{
-              ...stickyInner,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}>
-              <span style={{ opacity: 0.5 }}>Programs</span>
-
-              {/* View toggle */}
-              <div style={{ display: 'flex', gap: '0.5rem', opacity: 0.5 }}>
-                <button
-                  onClick={() => setViewMode('thumbnail')}
-                  style={{
-                    fontSize: '0.75rem',
-                    fontWeight: viewMode === 'thumbnail' ? 700 : 400,
-                    opacity: viewMode === 'thumbnail' ? 1 : 0.5,
-                    transition: 'opacity 0.2s ease',
-                  }}
-                >
-                  Grid
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  style={{
-                    fontSize: '0.75rem',
-                    fontWeight: viewMode === 'list' ? 700 : 400,
-                    opacity: viewMode === 'list' ? 1 : 0.5,
-                    transition: 'opacity 0.2s ease',
-                  }}
-                >
-                  List
-                </button>
-              </div>
-            </div>
+          {/* View toggle */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            padding: isMobile ? '0.625rem 1.5rem' : '0.625rem 4rem',
+            gap: '0.5rem',
+            opacity: 0.5,
+          }}>
+            <button
+              onClick={() => setViewMode('thumbnail')}
+              style={{
+                fontSize: '0.75rem',
+                fontWeight: viewMode === 'thumbnail' ? 700 : 400,
+                opacity: viewMode === 'thumbnail' ? 1 : 0.5,
+                transition: 'opacity 0.2s ease',
+              }}
+            >
+              Grid
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              style={{
+                fontSize: '0.75rem',
+                fontWeight: viewMode === 'list' ? 700 : 400,
+                opacity: viewMode === 'list' ? 1 : 0.5,
+                transition: 'opacity 0.2s ease',
+              }}
+            >
+              List
+            </button>
           </div>
 
           {/* Section Title */}
@@ -130,7 +92,7 @@ const Events: React.FC = () => {
               letterSpacing: isMobile ? '-0.03em' : '-0.04em',
               margin: 0,
             }}>
-              Programs
+              Events
             </h2>
           </div>
 
@@ -276,9 +238,7 @@ const Events: React.FC = () => {
               {filteredEvents.map((item) => (
                 <div
                   key={item.id}
-                  onClick={() => setActivePoster(item.script)}
                   style={{
-                    aspectRatio: '4/5',
                     position: 'relative',
                     cursor: 'pointer',
                     padding: '1rem',
@@ -290,29 +250,46 @@ const Events: React.FC = () => {
                   onMouseLeave={() => setActiveItem(null)}
                 >
                   <div style={{
-                    flexGrow: 1,
+                    aspectRatio: '4/5',
                     marginBottom: '1rem',
                     position: 'relative',
+                    overflow: 'hidden',
                   }}>
-                    <div style={{
-                      position: 'absolute',
-                      inset: 0,
-                      backgroundColor: activeItem === item.id ? 'var(--color-text)' : 'var(--color-line)',
-                      opacity: activeItem === item.id ? 0.1 : 0.05,
-                      border: '1px solid var(--color-text)',
-                      transition: 'all 0.3s ease',
-                    }} />
-                    <span style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      fontSize: '0.625rem',
-                      fontWeight: 500,
-                      letterSpacing: '0.1em',
-                      textTransform: 'uppercase',
-                      opacity: 0.3,
-                    }}>Coming Soon</span>
+                    {item.poster ? (
+                      <img
+                        src={item.poster}
+                        alt={item.title}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          transition: 'transform 0.3s ease',
+                          transform: activeItem === item.id ? 'scale(1.03)' : 'scale(1)',
+                        }}
+                      />
+                    ) : (
+                      <>
+                        <div style={{
+                          position: 'absolute',
+                          inset: 0,
+                          backgroundColor: activeItem === item.id ? 'var(--color-text)' : 'var(--color-line)',
+                          opacity: activeItem === item.id ? 0.1 : 0.05,
+                          border: '1px solid var(--color-text)',
+                          transition: 'all 0.3s ease',
+                        }} />
+                        <span style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          fontSize: '0.625rem',
+                          fontWeight: 500,
+                          letterSpacing: '0.1em',
+                          textTransform: 'uppercase',
+                          opacity: 0.3,
+                        }}>Coming Soon</span>
+                      </>
+                    )}
                   </div>
 
                   <div style={{
@@ -342,7 +319,6 @@ const Events: React.FC = () => {
               {filteredEvents.map((event) => (
                 <div
                   key={event.id}
-                  onClick={() => setActivePoster(event.script)}
                   style={{
                     display: 'flex',
                     flexDirection: isMobile ? 'column' : 'row',
@@ -381,12 +357,6 @@ const Events: React.FC = () => {
         </section>
       </div>
 
-      {activePoster && (
-        <PosterStage
-          scriptUrl={activePoster}
-          onClose={() => setActivePoster(null)}
-        />
-      )}
     </>
   );
 };

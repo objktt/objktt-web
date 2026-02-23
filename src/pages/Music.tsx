@@ -93,25 +93,6 @@ const Music: React.FC = () => {
     return () => window.removeEventListener('resize', drawLines);
   }, [drawLines]);
 
-  const stickyBar: React.CSSProperties = {
-    position: 'sticky',
-    top: 'var(--header-height)',
-    zIndex: 50,
-    backgroundColor: 'var(--color-bg)',
-  };
-
-  const stickyInner: React.CSSProperties = {
-    width: 'calc(100% - 4rem)',
-    margin: '0 2rem',
-    padding: isMobile ? '0.625rem 0' : '0.625rem 2rem',
-    borderTop: '1px solid var(--color-line)',
-    borderBottom: '1px solid var(--color-line)',
-    fontSize: '0.75rem',
-    fontWeight: 500,
-    letterSpacing: '0.08em',
-    textTransform: 'uppercase',
-    color: 'var(--color-text)',
-  };
 
   const isRelated = (i: number) =>
     hoveredGenre !== null &&
@@ -120,12 +101,6 @@ const Music: React.FC = () => {
   return (
     <div style={{ paddingBottom: '4rem' }}>
       <section>
-        <div style={stickyBar}>
-          <div style={stickyInner}>
-            <span style={{ opacity: 0.5 }}>Music</span>
-          </div>
-        </div>
-
         {/* Section Title */}
         <div style={{
           padding: `${isMobile ? '3rem' : '5rem'} ${isMobile ? '1.5rem' : '4rem'} ${isMobile ? '2rem' : '3rem'}`,
