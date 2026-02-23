@@ -43,15 +43,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         width: '44px',
         height: '24px',
         borderRadius: '12px',
-        backgroundColor: theme === 'light' ? '#1119E9' : '#FBBF24',
+        backgroundColor: theme === 'light' ? '#1119E9' : '#333',
         border: 'none',
         cursor: 'pointer',
         padding: '2px',
         display: 'flex',
         alignItems: 'center',
-        opacity: theme === 'light' ? 1 : 0.9,
+        opacity: 1,
         transition: 'all 0.3s ease',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        boxShadow: 'inset 0 0 6px rgba(255,255,255,0.4), inset 0 0 12px rgba(255,255,255,0.15)'
       }}
       aria-label="Toggle Theme"
     >

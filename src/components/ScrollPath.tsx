@@ -2,32 +2,24 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import gsap from 'gsap';
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import BayerDither from './BayerDither';
-
-import monsteraSvg from '../assets/svg/monstera.svg';
-import reelSvg from '../assets/svg/reel.svg';
-import wineSvg from '../assets/svg/wine.svg';
-import cocktail01Svg from '../assets/svg/cocktail_01.svg';
-import cocktail02Svg from '../assets/svg/cocktail_02.svg';
-import cocktail03Svg from '../assets/svg/cocktail_03.svg';
-import recordSvg from '../assets/svg/record.svg';
+import ModelObject from './ModelObject';
 
 gsap.registerPlugin(MotionPathPlugin, ScrollTrigger);
 
 const BRAND_COLOR = '#1119E9';
-// RGB(17, 25, 233) normalized: r=0.067, g=0.098, b=0.914
-const COLOR_MATRIX = '0 0 0 0 0.067 0 0 0 0 0.098 0 0 0 0 0.914 0 0 0 1 0';
 
-
-const POINT_SVGS: Record<number, string> = {
-  0: monsteraSvg,
-  1: reelSvg,
-  2: wineSvg,
-  3: cocktail01Svg,
-  4: cocktail02Svg,
-  5: cocktail03Svg,
-  6: recordSvg,
+const POINT_MODELS: Record<number, string> = {
+  0: '/models/monstera.glb',
+  1: '/models/reel-to-reel.glb',
+  2: '/models/wine-bottle-and-glass.glb',
+  3: '/models/cocktail-martini.glb',
+  4: '/models/cocktail.glb',
+  5: '/models/pizza.glb',
+  6: '/models/vinyl-record.glb',
+  7: '/models/turntable.glb',
 };
+
+const NO_ROTATION = new Set([7]);
 
 // Returns base object size scaled to viewport width
 function getBaseSize(wW: number): number {
@@ -38,8 +30,14 @@ function getBaseSize(wW: number): number {
 }
 
 function getPointSize(index: number, baseSize: number): number {
-  if (index === 0) return baseSize * 1.1;
-  if (index >= 2 && index <= 5) return baseSize / 2;
+  if (index === 0) return baseSize * 1.716;
+  if (index === 1) return baseSize * 1.5;
+  if (index === 2) return baseSize * 0.65;
+  if (index === 3) return baseSize * 0.65;
+  if (index === 4) return baseSize * 0.65;
+  if (index === 5) return baseSize * 0.75;
+  if (index === 6) return baseSize * 0.9;
+  if (index === 7) return baseSize * 1.2;
   return baseSize;
 }
 
@@ -48,7 +46,7 @@ function getYAdjust(index: number, vh: number): number {
   switch (index) {
     case 0: return 200;
     case 1: return vh * 0.5;
-    case 2: return vh * 1.35;
+    case 2: return vh * 1.35 - 200;
     case 3: return vh * 0.12;
     case 4: return vh * -0.43;
     default: return 0;
@@ -78,6 +76,12 @@ function calcPoints(sections: NodeListOf<Element>, wW: number, vh: number, scrol
     pts.splice(5, 0, { x: wW * 0.2, y: (p5.y + p6.y) / 2 });
   }
 
+  // Turntable (index 7): next to record (index 6) with X offset
+  if (pts.length >= 7) {
+    const record = pts[6];
+    pts.push({ x: record.x, y: record.y + 200 });
+  }
+
   return pts;
 }
 
@@ -93,69 +97,6 @@ function buildPaths(pts: { x: number; y: number }[]) {
   }
   return { d, segs };
 }
-
-interface SvgObjectProps {
-  src: string;
-  x: number;
-  y: number;
-  size: number;
-  zIndex?: number;
-  index: number;
-  objRef: (el: HTMLDivElement | null) => void;
-}
-
-const SvgObject: React.FC<SvgObjectProps> = ({ src, x, y, size, zIndex = 12, objRef, index }) => {
-  const innerRef = useRef<HTMLDivElement>(null);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const el = innerRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const rx = (e.clientX - rect.left) / rect.width - 0.5;
-    const ry = (e.clientY - rect.top) / rect.height - 0.5;
-    el.style.transform = `rotateY(${rx * 30}deg) rotateX(${-ry * 30}deg) scale(1.05)`;
-  }, []);
-
-  const handleMouseLeave = useCallback(() => {
-    const el = innerRef.current;
-    if (el) el.style.transform = 'rotateY(0deg) rotateX(0deg) scale(1)';
-  }, []);
-
-  return (
-    <div
-      ref={objRef}
-      style={{
-        position: 'absolute',
-        left: x,
-        top: y,
-        width: size,
-        height: size,
-        transform: 'translate(-50%, -50%)',
-        zIndex,
-        pointerEvents: 'auto',
-        opacity: 0,
-      }}
-    >
-      <div
-        ref={innerRef}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-        style={{
-          width: '100%',
-          height: '100%',
-          perspective: '800px',
-          transition: 'transform 0.15s ease-out',
-          position: 'relative',
-          animation: index === 6
-            ? 'svgFloat 4s ease-in-out infinite, recordSpinY 6s linear infinite'
-            : 'svgFloat 4s ease-in-out infinite',
-        }}
-      >
-        <BayerDither src={src} width={size} height={size} />
-      </div>
-    </div>
-  );
-};
 
 const ScrollPath: React.FC = () => {
   const pathRef = useRef<SVGPathElement>(null);
@@ -272,7 +213,7 @@ const ScrollPath: React.FC = () => {
 
     for (let i = 0; i < points.length; i++) {
       const el = objRefs.current[i];
-      if (el) gsap.set(el, { opacity: 0, scale: 1, xPercent: -50, yPercent: -50, rotation: 0 });
+      if (el) gsap.set(el, { opacity: 0, xPercent: -50, yPercent: -50 });
     }
 
     const checkDotPosition = () => {
@@ -285,42 +226,100 @@ const ScrollPath: React.FC = () => {
         if (!el) continue;
 
         const sz = getPointSize(i, baseSize);
-        const svgLeft = points[i].x - sz / 2;
-        const svgTop = points[i].y - sz / 2 - window.scrollY;
-        const svgRight = svgLeft + sz;
-        const svgBottom = svgTop + sz;
+        const objLeft = points[i].x - sz / 2;
+        const objTop = points[i].y - sz / 2 - window.scrollY;
+        const objRight = objLeft + sz;
+        const objBottom = objTop + sz;
 
-        const inside = dotCx >= svgLeft && dotCx <= svgRight && dotCy >= svgTop && dotCy <= svgBottom;
-
-        const rot = i % 2 === 0 ? 15 : -15;
+        const inside = dotCx >= objLeft && dotCx <= objRight && dotCy >= objTop && dotCy <= objBottom;
 
         if (inside && !visibleState[i]) {
           visibleState[i] = true;
           gsap.killTweensOf(el);
-          gsap.set(el, { opacity: 1 });
-
-          if (i === 0) {
-            gsap.to(el, { xPercent: -50, yPercent: -50, rotation: rot, duration: 1.2, ease: 'power2.out' });
-          } else {
-            gsap.to(el, { xPercent: -50, yPercent: -50, rotation: rot, duration: 0.5, ease: 'power2.out' });
-          }
+          gsap.to(el, { opacity: 1, duration: i === 0 ? 1.2 : 0.5, ease: 'power2.out' });
         } else if (!inside && visibleState[i]) {
           visibleState[i] = false;
           gsap.killTweensOf(el);
-
-          if (i === 0) {
-            gsap.to(el, { xPercent: -50, yPercent: -50, rotation: 0, duration: 0.6, ease: 'power2.in', onComplete: () => { gsap.set(el, { opacity: 0 }); } });
-          } else {
-            gsap.to(el, { xPercent: -50, yPercent: -50, rotation: 0, duration: 0.3, ease: 'power2.in', onComplete: () => { gsap.set(el, { opacity: 0 }); } });
-          }
+          gsap.to(el, { opacity: 0, duration: i === 0 ? 0.6 : 0.3, ease: 'power2.in' });
         }
       }
     };
 
+    // Liquid splatter particle system
+    let prevDotX = 0;
+    let prevDotY = 0;
+    let frameCount = 0;
+    const particles: HTMLDivElement[] = [];
+
+    const spawnDroplet = (x: number, y: number, vx: number, vy: number) => {
+      const el = document.createElement('div');
+      const size = 4 + Math.random() * 8;
+      // Perpendicular + random spread from velocity direction
+      const angle = Math.atan2(vy, vx) + (Math.random() - 0.5) * Math.PI;
+      const speed = 30 + Math.random() * 60;
+      const dx = Math.cos(angle) * speed;
+      const dy = Math.sin(angle) * speed;
+
+      Object.assign(el.style, {
+        position: 'absolute',
+        left: `${x - size / 2}px`,
+        top: `${y - size / 2}px`,
+        width: `${size}px`,
+        height: `${size}px`,
+        borderRadius: '50%',
+        backgroundColor: BRAND_COLOR,
+        filter: 'url(#splatter)',
+        pointerEvents: 'none',
+        zIndex: '10',
+      });
+      wrapper.appendChild(el);
+      particles.push(el);
+
+      gsap.to(el, {
+        x: dx,
+        y: dy,
+        opacity: 0,
+        scale: 0,
+        duration: 0.4 + Math.random() * 0.4,
+        ease: 'power2.out',
+        onComplete: () => {
+          el.remove();
+          const idx = particles.indexOf(el);
+          if (idx !== -1) particles.splice(idx, 1);
+        },
+      });
+    };
+
+    const spawnSplatter = () => {
+      const cx = (gsap.getProperty(dot, "x") as number) + 12;
+      const cy = (gsap.getProperty(dot, "y") as number) + 12;
+      const vx = cx - prevDotX;
+      const vy = cy - prevDotY;
+      const speed = Math.sqrt(vx * vx + vy * vy);
+
+      if (frameCount > 0 && speed > 5 && frameCount % 3 === 0) {
+        const count = Math.min(Math.floor(speed / 8), 2);
+        for (let i = 0; i < count; i++) {
+          spawnDroplet(cx, cy, vx, vy);
+        }
+      }
+
+      const targetScale = speed > 3 ? 1.4 : 0.8;
+      const currentScale = (gsap.getProperty(dot, "scale") as number) || 1;
+      gsap.set(dot, { scale: currentScale + (targetScale - currentScale) * 0.1 });
+
+      prevDotX = cx;
+      prevDotY = cy;
+      frameCount++;
+    };
+
     gsap.ticker.add(checkDotPosition);
+    gsap.ticker.add(spawnSplatter);
 
     return () => {
       gsap.ticker.remove(checkDotPosition);
+      gsap.ticker.remove(spawnSplatter);
+      particles.forEach((el) => el.remove());
       allTweens.forEach((tw) => tw.kill());
       allTriggers.forEach((st) => st.kill());
       segElements.forEach((el) => el.remove());
@@ -343,8 +342,14 @@ const ScrollPath: React.FC = () => {
     >
       <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
         <defs>
-          <filter id="svg-recolor" colorInterpolationFilters="sRGB">
-            <feColorMatrix type="matrix" values={COLOR_MATRIX} />
+          <filter id="splatter" x="-50%" y="-50%" width="200%" height="200%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" seed="2" result="noise">
+              <animate attributeName="seed" values="2;5;8;13;21;34;3;17;7;11" dur="2s" repeatCount="indefinite" calcMode="discrete" />
+              <animate attributeName="baseFrequency" values="0.9;0.7;1.1;0.8;1.0;0.75;0.95;0.85" dur="3s" repeatCount="indefinite" calcMode="discrete" />
+            </feTurbulence>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="14" xChannelSelector="R" yChannelSelector="G" result="displaced" />
+            <feGaussianBlur in="displaced" stdDeviation="0.5" result="blurred" />
+            <feComposite in="blurred" in2="blurred" operator="over" />
           </filter>
         </defs>
       </svg>
@@ -372,22 +377,23 @@ const ScrollPath: React.FC = () => {
           borderRadius: '50%',
           backgroundColor: BRAND_COLOR,
           boxShadow: '0 0 20px rgba(17, 25, 233, 0.5)',
+          filter: 'url(#splatter)',
           zIndex: 11,
         }}
       />
 
       {points.map((pt, i) => {
-        const src = POINT_SVGS[i];
-        if (!src) return null;
+        const url = POINT_MODELS[i];
+        if (!url) return null;
         return (
-          <SvgObject
+          <ModelObject
             key={i}
-            src={src}
+            url={url}
             x={pt.x}
             y={pt.y}
             size={getPointSize(i, baseSize)}
             zIndex={12}
-            index={i}
+            noRotation={NO_ROTATION.has(i)}
             objRef={(el) => setObjRef(el, i)}
           />
         );

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useBreakpoint } from '../hooks/useBreakpoint';
+import { useLanguage } from '../contexts/LanguageContext';
 
 import img1 from '../assets/img/objktt/DSC00876.JPEG';
 import img2 from '../assets/img/objktt/DSC00885.JPEG';
@@ -33,6 +34,7 @@ const arrowBtn: React.CSSProperties = {
 
 const AboutSection: React.FC = () => {
   const { isMobile } = useBreakpoint();
+  const { t } = useLanguage();
   const inset = isMobile ? '1.5rem' : '4rem';
   const [currentImg, setCurrentImg] = useState(0);
 
@@ -45,7 +47,7 @@ const AboutSection: React.FC = () => {
         padding: `${isMobile ? '3rem' : '5rem'} ${inset} 0`,
         display: 'grid',
         gridTemplateColumns: isMobile ? '1fr' : 'repeat(12, 1fr)',
-        gridTemplateRows: isMobile ? 'auto' : 'auto auto auto auto',
+        gridTemplateRows: isMobile ? 'auto' : 'auto 1fr auto auto',
         columnGap: '2rem',
         rowGap: isMobile ? '4rem' : '6rem',
         alignItems: 'start',
@@ -152,25 +154,26 @@ const AboutSection: React.FC = () => {
         {/* Row 2: Intro */}
         <div style={{ gridColumn: isMobile ? '1 / -1' : '1 / 7', position: 'relative', zIndex: 1 }}>
           <p style={editorialText}>
-            Objktt is an independent listening bar and cultural space located in Myeongdong, Seoul.
-            Situated on the 4th floor without an elevator, the space invites visitors to slow down and listen.
+            {t.about.aboutIntro}
           </p>
         </div>
 
         {/* Row 3: Vinyl/sound */}
         <div style={{ gridColumn: isMobile ? '1 / -1' : '7 / 13', position: 'relative', zIndex: 1 }}>
           <p style={editorialText}>
-            We focus on vinyl, sound, and human connection.
-            Live performances, installations, and listening sessions shape the rhythm of the space.
+            {t.about.aboutVinyl}
           </p>
         </div>
 
         {/* Row 4: Poetic */}
         <div style={{ gridColumn: isMobile ? '1 / -1' : '7 / 13', position: 'relative', zIndex: 1 }}>
           <p style={editorialText}>
-            Music needs time.<br />
-            People need air.<br />
-            Objects carry memory.
+            {t.about.aboutPoetic.split('\n').map((line, i) => (
+              <React.Fragment key={i}>
+                {line}
+                {i < t.about.aboutPoetic.split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
           </p>
         </div>
       </div>
