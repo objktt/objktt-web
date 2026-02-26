@@ -298,24 +298,22 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           }}>
             <div>
               <div style={{ fontSize: '0.75rem', opacity: 0.5, marginBottom: '0.5rem' }}>{t.footer.contact.label}</div>
-              <div style={{ fontSize: '0.875rem', marginBottom: '2rem' }}>
-                <a href={`mailto:${t.footer.contact.email}`} style={{ color: 'inherit', textDecoration: 'none', display: 'block', marginBottom: '0.25rem' }}>
+              <div style={{ fontSize: '0.875rem', lineHeight: 1.5 }}>
+                <a href={`mailto:${t.footer.contact.email}`} style={{ color: 'inherit', textDecoration: 'none', display: 'block', marginBottom: '0.5rem' }}>
                   {t.footer.contact.email}
                 </a>
-                <a href={`tel:${t.footer.contact.phone}`} style={{ color: 'inherit', textDecoration: 'none', display: 'block' }}>
-                  {t.footer.contact.phone}
-                </a>
+                <div style={{ opacity: 0.6, marginBottom: '0.5rem' }}>
+                  Seoul, Jung-gu, Myeongdong 8ga-gil, 58 4F
+                </div>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <a href="https://www.instagram.com/objktt.recordbar" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit', outline: 'none' }}>
+                    Instagram
+                  </a>
+                  <a href="https://soundcloud.com/objktt_recordbar" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit', outline: 'none' }}>
+                    SoundCloud
+                  </a>
+                </div>
               </div>
-            </div>
-
-            {/* Socials moved here */}
-            <div style={{ fontSize: '0.875rem', display: 'flex', gap: '1rem' }}>
-              <a href="https://www.instagram.com/objktt.recordbar" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit', outline: 'none' }}>
-                Instagram
-              </a>
-              <a href="https://soundcloud.com/objktt_recordbar" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit', outline: 'none' }}>
-                SoundCloud
-              </a>
             </div>
           </div>
 
