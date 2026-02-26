@@ -103,6 +103,8 @@ const ScrollPath: React.FC = () => {
   const dotRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const feImageRef = useRef<SVGFEImageElement>(null);
+  const feDispRef = useRef<SVGFEDisplacementMapElement>(null);
   const objRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [points, setPoints] = useState<{ x: number; y: number }[]>([]);
   const [segPaths, setSegPaths] = useState<string[]>([]);
@@ -180,7 +182,7 @@ const ScrollPath: React.FC = () => {
     const allTriggers: ScrollTrigger[] = [];
     const segElements: SVGPathElement[] = [];
 
-    gsap.set(dot, { x: points[0].x - 12, y: points[0].y - 12, scale: 1 });
+    gsap.set(dot, { x: points[0].x - 65, y: points[0].y - 65, scale: 1 });
 
     const vh = window.innerHeight;
 
@@ -245,81 +247,134 @@ const ScrollPath: React.FC = () => {
       }
     };
 
-    // Liquid splatter particle system
-    let prevDotX = 0;
-    let prevDotY = 0;
-    let frameCount = 0;
-    const particles: HTMLDivElement[] = [];
+    // ─── Liquid Glass (SVG feDisplacementMap refraction) ───
+    const DOT_SIZE = 130;
+    const DOT_HALF = DOT_SIZE / 2;
+    let prevDotX = points[0].x;
+    let prevDotY = points[0].y;
 
-    const spawnDroplet = (x: number, y: number, vx: number, vy: number) => {
-      const el = document.createElement('div');
-      const size = 4 + Math.random() * 8;
-      // Perpendicular + random spread from velocity direction
-      const angle = Math.atan2(vy, vx) + (Math.random() - 0.5) * Math.PI;
-      const speed = 30 + Math.random() * 60;
-      const dx = Math.cos(angle) * speed;
-      const dy = Math.sin(angle) * speed;
+    // Generate displacement map on hidden canvas
+    const mapCanvas = document.createElement('canvas');
+    mapCanvas.width = DOT_SIZE;
+    mapCanvas.height = DOT_SIZE;
+    const mapCtx = mapCanvas.getContext('2d')!;
 
-      Object.assign(el.style, {
-        position: 'absolute',
-        left: `${x - size / 2}px`,
-        top: `${y - size / 2}px`,
-        width: `${size}px`,
-        height: `${size}px`,
-        borderRadius: '50%',
-        backgroundColor: BRAND_COLOR,
-        filter: 'url(#splatter)',
-        pointerEvents: 'none',
-        zIndex: '10',
-      });
-      wrapper.appendChild(el);
-      particles.push(el);
+    const generateDisplacementMap = () => {
+      const w = DOT_SIZE;
+      const h = DOT_SIZE;
+      const data = new Uint8ClampedArray(w * h * 4);
+      const radius = 0.45; // drop radius in UV space
+      const strength = 0.35; // how much magnification (0 = none, 1 = max)
+      let maxScale = 0;
+      const rawValues: number[] = [];
 
-      gsap.to(el, {
-        x: dx,
-        y: dy,
-        opacity: 0,
-        scale: 0,
-        duration: 0.4 + Math.random() * 0.4,
-        ease: 'power2.out',
-        onComplete: () => {
-          el.remove();
-          const idx = particles.indexOf(el);
-          if (idx !== -1) particles.splice(idx, 1);
-        },
-      });
-    };
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const uvx = x / w;
+          const uvy = y / h;
+          const dx = uvx - 0.5;
+          const dy = uvy - 0.5;
+          const dist = Math.sqrt(dx * dx + dy * dy);
 
-    const spawnSplatter = () => {
-      const cx = (gsap.getProperty(dot, "x") as number) + 12;
-      const cy = (gsap.getProperty(dot, "y") as number) + 12;
-      const vx = cx - prevDotX;
-      const vy = cy - prevDotY;
-      const speed = Math.sqrt(vx * vx + vy * vy);
+          let offsetX = 0;
+          let offsetY = 0;
 
-      if (frameCount > 0 && speed > 5 && frameCount % 3 === 0) {
-        const count = Math.min(Math.floor(speed / 8), 2);
-        for (let i = 0; i < count; i++) {
-          spawnDroplet(cx, cy, vx, vy);
+          if (dist < radius) {
+            // Normalized distance (0 at center, 1 at edge)
+            const t = dist / radius;
+            // Lens refraction: pull pixels toward center = magnification
+            // Stronger pull near center, barrel distortion at edges
+            const refract = strength * (1 - t * t);
+            // Offset = pull toward center
+            offsetX = -dx * refract * w;
+            offsetY = -dy * refract * h;
+          }
+
+          maxScale = Math.max(maxScale, Math.abs(offsetX), Math.abs(offsetY));
+          rawValues.push(offsetX, offsetY);
         }
       }
 
-      const targetScale = speed > 3 ? 1.4 : 0.8;
-      const currentScale = (gsap.getProperty(dot, "scale") as number) || 1;
-      gsap.set(dot, { scale: currentScale + (targetScale - currentScale) * 0.1 });
+      if (maxScale === 0) maxScale = 1;
+
+      let idx = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        data[i] = (rawValues[idx++] / maxScale + 0.5) * 255;
+        data[i + 1] = (rawValues[idx++] / maxScale + 0.5) * 255;
+        data[i + 2] = 128;
+        data[i + 3] = 255;
+      }
+
+      mapCtx.putImageData(new ImageData(data, w, h), 0, 0);
+
+      if (feImageRef.current && feDispRef.current) {
+        feImageRef.current.setAttributeNS('http://www.w3.org/1999/xlink', 'href', mapCanvas.toDataURL());
+        feDispRef.current.setAttribute('scale', String(maxScale));
+      }
+    };
+
+    generateDisplacementMap();
+
+    // Spring physics for jelly-like secondary motion
+    let springVx = 0, springVy = 0;
+    let springDx = 0, springDy = 0;
+    const SPRING_K = 0.12;
+    const SPRING_DAMPING = 0.75;
+
+    const updateDrop = () => {
+      const cx = (gsap.getProperty(dot, "x") as number) + DOT_HALF;
+      const cy = (gsap.getProperty(dot, "y") as number) + DOT_HALF;
+      const vx = cx - prevDotX;
+      const vy = cy - prevDotY;
+      const speed = Math.sqrt(vx * vx + vy * vy);
+      const time = Date.now() * 0.002;
+
+      // ─ Spring: reacts to velocity changes (jelly slosh) ─
+      springVx += (-springDx * SPRING_K - vx * 0.3);
+      springVy += (-springDy * SPRING_K - vy * 0.3);
+      springVx *= SPRING_DAMPING;
+      springVy *= SPRING_DAMPING;
+      springDx += springVx;
+      springDy += springVy;
+      // Clamp spring displacement
+      springDx = Math.max(-12, Math.min(12, springDx));
+      springDy = Math.max(-12, Math.min(12, springDy));
+
+      // ─ Organic idle wobble (always active, amplified) ─
+      const idleAmp = 7;
+      const speedAmp = Math.min(speed * 0.5, 6); // wobble harder when moving
+      const amp = idleAmp + speedAmp;
+      const br1 = 51 + Math.sin(time * 1.0) * amp + Math.sin(time * 2.3) * 4 + springDx * 0.4;
+      const br2 = 49 + Math.cos(time * 1.3) * amp + Math.cos(time * 2.7) * 3 - springDx * 0.3;
+      const br3 = 48 + Math.sin(time * 0.7) * amp + Math.sin(time * 1.9) * 5 + springDy * 0.4;
+      const br4 = 52 + Math.cos(time * 1.1) * amp + Math.cos(time * 2.1) * 4 - springDy * 0.3;
+      const br5 = 62 + Math.sin(time * 0.9) * amp + Math.sin(time * 2.5) * 3 + springDx * 0.3;
+      const br6 = 44 + Math.cos(time * 1.2) * amp + Math.cos(time * 1.7) * 5 - springDy * 0.4;
+      const br7 = 56 + Math.sin(time * 1.4) * amp + Math.sin(time * 2.0) * 4 + springDy * 0.3;
+      const br8 = 38 + Math.cos(time * 0.8) * amp + Math.cos(time * 2.4) * 3 - springDx * 0.4;
+      dot.style.borderRadius = `${br1}% ${br2}% ${br3}% ${br4}% / ${br5}% ${br6}% ${br7}% ${br8}%`;
+
+      // ─ Breathing + velocity stretch ─
+      const breathe = 1 + Math.sin(time * 0.8) * 0.06;
+      const stretchX = breathe + Math.min(speed * 0.025, 0.5);
+      const stretchY = breathe / stretchX;
+
+      gsap.set(dot, {
+        scaleX: stretchX + Math.abs(springDx) * 0.005,
+        scaleY: stretchY + Math.abs(springDy) * 0.005,
+      });
 
       prevDotX = cx;
       prevDotY = cy;
-      frameCount++;
     };
 
     gsap.ticker.add(checkDotPosition);
-    gsap.ticker.add(spawnSplatter);
+    gsap.ticker.add(updateDrop);
 
     return () => {
       gsap.ticker.remove(checkDotPosition);
-      gsap.ticker.remove(spawnSplatter);
-      particles.forEach((el) => el.remove());
+      gsap.ticker.remove(updateDrop);
+      mapCanvas.remove();
       allTweens.forEach((tw) => tw.kill());
       allTriggers.forEach((st) => st.kill());
       segElements.forEach((el) => el.remove());
@@ -340,16 +395,29 @@ const ScrollPath: React.FC = () => {
         overflow: 'visible',
       }}
     >
-      <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>
+      {/* SVG displacement filter for liquid glass refraction */}
+      <svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style={{ position: 'absolute' }}>
         <defs>
-          <filter id="splatter" x="-50%" y="-50%" width="200%" height="200%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" seed="2" result="noise">
-              <animate attributeName="seed" values="2;5;8;13;21;34;3;17;7;11" dur="2s" repeatCount="indefinite" calcMode="discrete" />
-              <animate attributeName="baseFrequency" values="0.9;0.7;1.1;0.8;1.0;0.75;0.95;0.85" dur="3s" repeatCount="indefinite" calcMode="discrete" />
-            </feTurbulence>
-            <feDisplacementMap in="SourceGraphic" in2="noise" scale="14" xChannelSelector="R" yChannelSelector="G" result="displaced" />
-            <feGaussianBlur in="displaced" stdDeviation="0.5" result="blurred" />
-            <feComposite in="blurred" in2="blurred" operator="over" />
+          <filter
+            id="liquid-glass-filter"
+            filterUnits="objectBoundingBox"
+            colorInterpolationFilters="sRGB"
+            x="-10%" y="-10%" width="120%" height="120%"
+          >
+            <feImage
+              ref={feImageRef}
+              width="100%"
+              height="100%"
+              result="dispMap"
+            />
+            <feDisplacementMap
+              ref={feDispRef}
+              in="SourceGraphic"
+              in2="dispMap"
+              xChannelSelector="R"
+              yChannelSelector="G"
+              scale="0"
+            />
           </filter>
         </defs>
       </svg>
@@ -372,13 +440,21 @@ const ScrollPath: React.FC = () => {
         ref={dotRef}
         style={{
           position: 'absolute',
-          width: 24,
-          height: 24,
-          borderRadius: '50%',
-          backgroundColor: BRAND_COLOR,
-          boxShadow: '0 0 20px rgba(17, 25, 233, 0.5)',
-          filter: 'url(#splatter)',
-          zIndex: 11,
+          width: 130,
+          height: 130,
+          borderRadius: '51% 49% 48% 52% / 62% 44% 56% 38%',
+          overflow: 'hidden',
+          background: `
+            radial-gradient(circle at 28% 22%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.1) 20%, transparent 42%),
+            radial-gradient(circle at 75% 78%, rgba(255,255,255,0.05) 0%, transparent 30%)
+          `,
+          backdropFilter: 'url(#liquid-glass-filter) blur(0.3px) brightness(1.08) contrast(1.05)',
+          WebkitBackdropFilter: 'url(#liquid-glass-filter) blur(0.3px) brightness(1.08) contrast(1.05)',
+          border: '1px solid rgba(255,255,255,0.22)',
+          boxShadow: '0 4px 10px rgba(0,0,0,0.15), inset 0 -6px 14px rgba(0,0,0,0.12), inset 0 6px 14px rgba(255,255,255,0.1)',
+          pointerEvents: 'none',
+          zIndex: 999,
+          willChange: 'transform, border-radius',
         }}
       />
 

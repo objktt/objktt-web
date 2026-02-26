@@ -184,40 +184,58 @@ const Home: React.FC = () => {
             <Link
               to={`/events?event=${upcomingEvents[0].id}`}
               style={{
-                aspectRatio: '4/5',
-                position: 'relative',
-                cursor: 'pointer',
-                padding: '1.5rem',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'flex-end',
                 textDecoration: 'none',
                 color: 'inherit',
+                cursor: 'pointer',
               }}
               onMouseEnter={() => setActiveItem(upcomingEvents[0].id)}
               onMouseLeave={() => setActiveItem(null)}
             >
+              {/* Poster / Placeholder */}
               <div style={{
-                position: 'absolute',
-                inset: 0,
-                backgroundColor: activeItem === upcomingEvents[0].id ? 'var(--color-text)' : 'var(--color-line)',
-                opacity: activeItem === upcomingEvents[0].id ? 0.1 : 0.05,
-                border: '1px solid var(--color-text)',
-                transition: 'all 0.3s ease',
-              }} />
-              <span style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                fontSize: '0.75rem',
-                fontWeight: 500,
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                opacity: 0.3,
-                zIndex: 1,
-              }}>{t.home.comingSoon}</span>
-              <div style={{ position: 'relative', zIndex: 1 }}>
+                aspectRatio: '4/5',
+                position: 'relative',
+                overflow: 'hidden',
+              }}>
+                {upcomingEvents[0].poster ? (
+                  <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    backgroundImage: `url(${upcomingEvents[0].poster})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    filter: activeItem === upcomingEvents[0].id ? 'grayscale(0)' : 'grayscale(1)',
+                    transition: 'filter 0.3s ease',
+                  }} />
+                ) : (
+                  <>
+                    <div style={{
+                      position: 'absolute',
+                      inset: 0,
+                      backgroundColor: activeItem === upcomingEvents[0].id ? 'var(--color-text)' : 'var(--color-line)',
+                      opacity: activeItem === upcomingEvents[0].id ? 0.1 : 0.05,
+                      border: '1px solid var(--color-text)',
+                      transition: 'all 0.3s ease',
+                    }} />
+                    <span style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                      opacity: 0.3,
+                      zIndex: 1,
+                    }}>{t.home.comingSoon}</span>
+                  </>
+                )}
+              </div>
+              {/* Event Info — outside poster */}
+              <div style={{ paddingTop: '1rem' }}>
                 <div style={{
                   fontSize: '0.875rem',
                   fontWeight: 500,

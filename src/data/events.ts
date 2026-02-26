@@ -2,6 +2,7 @@ import poster251205 from '../assets/poster/251205.jpg';
 import poster251206 from '../assets/poster/251206.jpg';
 import poster251212 from '../assets/poster/251212.jpg';
 import poster251221 from '../assets/poster/251221.jpg';
+import poster260301 from '../assets/poster/260301.png';
 
 export interface Event {
   id: string;
@@ -55,10 +56,11 @@ export const events: Event[] = [
   {
     id: 'evt-004',
     date: '2026.03.01',
-    title: 'Birthday Bash',
-    type: 'KLANG',
-    description: { en: 'Objktt 1st anniversary party', ko: '오브옉트 1주년 파티' },
-    script: 'wave.js'
+    title: "Let's get started",
+    type: 'PARTY',
+    description: { en: 'party', ko: 'party' },
+    script: 'wave.js',
+    poster: poster260301,
   },
   {
     id: 'evt-005',
