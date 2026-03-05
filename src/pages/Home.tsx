@@ -199,7 +199,24 @@ const Home: React.FC = () => {
                 position: 'relative',
                 overflow: 'hidden',
               }}>
-                {upcomingEvents[0].poster ? (
+                {upcomingEvents[0].posterVideo ? (
+                  <video
+                    src={upcomingEvents[0].posterVideo}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      filter: activeItem === upcomingEvents[0].id ? 'grayscale(0)' : 'grayscale(1)',
+                      transition: 'filter 0.3s ease',
+                    }}
+                  />
+                ) : upcomingEvents[0].poster ? (
                   <div style={{
                     position: 'absolute',
                     inset: 0,

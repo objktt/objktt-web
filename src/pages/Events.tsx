@@ -255,7 +255,22 @@ const Events: React.FC = () => {
                     position: 'relative',
                     overflow: 'hidden',
                   }}>
-                    {item.poster ? (
+                    {item.posterVideo ? (
+                      <video
+                        src={item.posterVideo}
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          transition: 'transform 0.3s ease',
+                          transform: activeItem === item.id ? 'scale(1.03)' : 'scale(1)',
+                        }}
+                      />
+                    ) : item.poster ? (
                       <img
                         src={item.poster}
                         alt={item.title}

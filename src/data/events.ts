@@ -3,6 +3,7 @@ import poster251206 from '../assets/poster/251206.jpg';
 import poster251212 from '../assets/poster/251212.jpg';
 import poster251221 from '../assets/poster/251221.jpg';
 import poster260301 from '../assets/poster/260301.png';
+import poster260307 from '../assets/poster/260307.mp4';
 
 export interface Event {
   id: string;
@@ -12,6 +13,7 @@ export interface Event {
   description: { en: string; ko: string };
   script: string;
   poster?: string;
+  posterVideo?: string;
 }
 
 export const events: Event[] = [
@@ -68,7 +70,8 @@ export const events: Event[] = [
     title: 'KLANG',
     type: 'KLANG',
     description: { en: 'Weekly Saturday DJ session', ko: '매주 토요일 DJ 세션' },
-    script: 'wave.js'
+    script: 'wave.js',
+    posterVideo: poster260307,
   },
   {
     id: 'evt-006',
