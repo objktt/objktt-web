@@ -60,7 +60,7 @@ const KineticText: React.FC<KineticTextProps> = ({
     return tex;
   }, [text, color]);
 
-  useFrame((state, delta) => {
+  useFrame((_state, delta) => {
     if (meshRef.current) {
       // Rotate the cylinder itself slowly
       meshRef.current.rotation.y -= delta * 0.1;

@@ -19,9 +19,11 @@ const STOREFRONT_URL = STORE_DOMAIN
   : '';
 
 export class ShopifyError extends Error {
-  constructor(message: string, public details?: unknown) {
+  details?: unknown;
+  constructor(message: string, details?: unknown) {
     super(message);
     this.name = 'ShopifyError';
+    this.details = details;
   }
 }
 
