@@ -15,11 +15,13 @@ interface ImgItem {
  * Lay out images on a grid so they never overlap.
  * Each image lands in its own cell, with small in-cell jitter for a natural feel.
  */
-function makeItems(_requested: number, isMobile: boolean): ImgItem[] {
-  // Sparser grid → bigger cells → bigger images, still no overlap.
+function makeItems(requested: number, isMobile: boolean): ImgItem[] {
+  // Grid has more cells than we need — picking a random subset spreads
+  // images more naturally than a fully-packed grid.
   const cols = isMobile ? 2 : 3;
-  const rows = 3;
-  const count = cols * rows;
+  const rows = isMobile ? 3 : 2;
+  const totalCells = cols * rows;
+  const count = Math.min(requested, totalCells);
   const cellW = 100 / cols;
   const cellH = 100 / rows;
 
@@ -27,9 +29,9 @@ function makeItems(_requested: number, isMobile: boolean): ImgItem[] {
     .sort(() => Math.random() - 0.5)
     .slice(0, count);
 
-  const cellIndices = Array.from({ length: cols * rows }, (_, i) => i).sort(
-    () => Math.random() - 0.5
-  );
+  const cellIndices = Array.from({ length: totalCells }, (_, i) => i)
+    .sort(() => Math.random() - 0.5)
+    .slice(0, count);
 
   // Wider random size range; max safely under cell footprint.
   const minSize = isMobile ? 90 : 180;
@@ -99,7 +101,7 @@ const HeroParallaxImages: React.FC<HeroParallaxImagesProps> = ({
   isMobile = false,
 }) => {
   const items = useMemo(
-    () => makeItems(count ?? (isMobile ? 6 : 12), isMobile),
+    () => makeItems(count ?? 5, isMobile),
     [count, isMobile]
   );
   const { scrollY } = useScroll();

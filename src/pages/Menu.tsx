@@ -100,10 +100,13 @@ const menuData: MenuCategory[] = [
     ],
   },
   {
-    title: 'Beer',
+    title: 'Beer & Spirits',
     items: [
-      { name: 'Heineken Draft Beer', nameKr: '하이네켄 생맥주' },
-      { name: 'Weihenstephaner Hefe Weissbier', nameKr: '바이엔슈테판 헤페 바이스' },
+      { name: 'Heineken Draft Beer', nameKr: '하이네켄 생맥주', description: 'Premium Dutch lager on draft — smooth and refreshing' },
+      { name: 'Cafri (Bottled)', nameKr: '카프리 (병맥주)', description: 'Light Korean lager, crisp and easy drinking' },
+      { name: "Hendrick's Gin", nameKr: '헨드릭스 진', description: 'Honey, creamy malt, gentle oak, nutty' },
+      { name: 'Tequila Sierra Reposado Shot', nameKr: '테킬라 시에라 레포사도 샷', description: 'Powerful peat, smoke, iodine, full-bodied' },
+      { name: 'Soju Shot (25% ABV)', nameKr: '소주 샷 (25도)', description: 'Clean and smooth Korean spirit' },
     ],
   },
   {
@@ -148,13 +151,6 @@ const menuData: MenuCategory[] = [
       { name: 'Strawberry Sorbet', nameKr: '딸기 바나나 샤베', description: 'Strawberry-banana sorbet with a smooth, fruity finish', image: imgSorbet },
       { name: 'Truffle Oil Popcorn', nameKr: '트러플 오일 팝콘', description: 'Truffle-scented popcorn, perfect with beer', image: imgPopcorn },
       { name: 'Ice Cream Pound Cake', nameKr: '아이스크림 파운드 케이크', description: 'Chocolate brownie with vanilla ice cream', image: imgIcecreamcake },
-    ],
-  },
-  {
-    title: 'Liquor',
-    items: [
-      { name: 'Gin Tanqueray', nameKr: '진 탱커레이' },
-      { name: 'Tequila Sierra Reposado Shot', nameKr: '데킬라 시에라 레포사도 샷' },
     ],
   },
 ];
