@@ -6,7 +6,7 @@ import ModelObject from './ModelObject';
 
 gsap.registerPlugin(MotionPathPlugin, ScrollTrigger);
 
-const BRAND_COLOR = '#1119E9';
+const BRAND_COLOR = '#0E2EFF';
 
 const POINT_MODELS: Record<number, string> = {
   0: '/models/monstera.glb',
@@ -98,9 +98,20 @@ function buildPaths(pts: { x: number; y: number }[]) {
   return { d, segs };
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function smoothstep(edge0: number, edge1: number, x: number) {
+  const t = clamp((x - edge0) / (edge1 - edge0), 0, 1);
+  return t * t * (3 - 2 * t);
+}
+
 const ScrollPath: React.FC = () => {
   const pathRef = useRef<SVGPathElement>(null);
   const dotRef = useRef<HTMLDivElement>(null);
+  const dotBodyRef = useRef<HTMLDivElement>(null);
+  const dotHighlightRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const feImageRef = useRef<SVGFEImageElement>(null);
@@ -146,7 +157,10 @@ const ScrollPath: React.FC = () => {
 
   // Initial calculation
   useEffect(() => {
-    calculate();
+    const frame = requestAnimationFrame(() => {
+      calculate();
+    });
+    return () => cancelAnimationFrame(frame);
   }, [calculate]);
 
   // Recalculate on resize
@@ -219,9 +233,11 @@ const ScrollPath: React.FC = () => {
     }
 
     const checkDotPosition = () => {
-      const dotRect = dot.getBoundingClientRect();
+      const dotRect = (dotBodyRef.current ?? dot).getBoundingClientRect();
       const dotCx = dotRect.left + dotRect.width / 2;
       const dotCy = dotRect.top + dotRect.height / 2;
+      let strongestInfluence = 0;
+      let nextModelScale = 1;
 
       for (let i = 0; i < points.length; i++) {
         const el = objRefs.current[i];
@@ -244,7 +260,28 @@ const ScrollPath: React.FC = () => {
           gsap.killTweensOf(el);
           gsap.to(el, { opacity: 0, duration: i === 0 ? 0.6 : 0.3, ease: 'power2.in' });
         }
+
+        const objCx = points[i].x;
+        const objCy = points[i].y - window.scrollY;
+        const approachRangeX = sz * 1.15 + DOT_HALF * 1.6;
+        const approachRangeY = sz * 1.15 + DOT_HALF * 1.6;
+        const normalizedDx = Math.abs(dotCx - objCx) / approachRangeX;
+        const normalizedDy = Math.abs(dotCy - objCy) / approachRangeY;
+        const radialDistance = Math.sqrt(normalizedDx * normalizedDx + normalizedDy * normalizedDy);
+        const proximity = 1 - smoothstep(0.08, 1.12, radialDistance);
+
+        if (proximity > strongestInfluence) {
+          strongestInfluence = proximity;
+          nextModelScale = clamp(sz / DOT_SIZE, 0.82, 3);
+        }
       }
+
+      const desiredInfluence = smoothstep(0, 1, strongestInfluence);
+      const growthRate = desiredInfluence > modelInfluence
+        ? 0.028 + modelInfluence * 0.05
+        : 0.11;
+      modelInfluence += (desiredInfluence - modelInfluence) * growthRate;
+      targetModelScale = 1 + (nextModelScale - 1) * modelInfluence;
     };
 
     // ─── Liquid Glass (SVG feDisplacementMap refraction) ───
@@ -252,6 +289,11 @@ const ScrollPath: React.FC = () => {
     const DOT_HALF = DOT_SIZE / 2;
     let prevDotX = points[0].x;
     let prevDotY = points[0].y;
+    let targetModelScale = 1;
+    let currentModelScale = 1;
+    let modelScaleVelocity = 0;
+    let modelInfluence = 0;
+    let heading = 0;
 
     // Generate displacement map on hidden canvas
     const mapCanvas = document.createElement('canvas');
@@ -328,6 +370,14 @@ const ScrollPath: React.FC = () => {
       const vy = cy - prevDotY;
       const speed = Math.sqrt(vx * vx + vy * vy);
       const time = Date.now() * 0.002;
+      const speedNorm = clamp(speed / 16, 0, 1);
+      const targetHeading = speed > 0.05 ? Math.atan2(vy, vx) : heading;
+      const angleDelta = Math.atan2(Math.sin(targetHeading - heading), Math.cos(targetHeading - heading));
+      heading += angleDelta * (0.18 + speedNorm * 0.16);
+      modelScaleVelocity += (targetModelScale - currentModelScale) * 0.055;
+      modelScaleVelocity *= 0.82;
+      currentModelScale += modelScaleVelocity;
+      currentModelScale = clamp(currentModelScale, 0.82, 3.2);
 
       // ─ Spring: reacts to velocity changes (jelly slosh) ─
       springVx += (-springDx * SPRING_K - vx * 0.3);
@@ -340,29 +390,66 @@ const ScrollPath: React.FC = () => {
       springDx = Math.max(-12, Math.min(12, springDx));
       springDy = Math.max(-12, Math.min(12, springDy));
 
-      // ─ Organic idle wobble (always active, amplified) ─
-      const idleAmp = 7;
-      const speedAmp = Math.min(speed * 0.5, 6); // wobble harder when moving
-      const amp = idleAmp + speedAmp;
-      const br1 = 51 + Math.sin(time * 1.0) * amp + Math.sin(time * 2.3) * 4 + springDx * 0.4;
-      const br2 = 49 + Math.cos(time * 1.3) * amp + Math.cos(time * 2.7) * 3 - springDx * 0.3;
-      const br3 = 48 + Math.sin(time * 0.7) * amp + Math.sin(time * 1.9) * 5 + springDy * 0.4;
-      const br4 = 52 + Math.cos(time * 1.1) * amp + Math.cos(time * 2.1) * 4 - springDy * 0.3;
-      const br5 = 62 + Math.sin(time * 0.9) * amp + Math.sin(time * 2.5) * 3 + springDx * 0.3;
-      const br6 = 44 + Math.cos(time * 1.2) * amp + Math.cos(time * 1.7) * 5 - springDy * 0.4;
-      const br7 = 56 + Math.sin(time * 1.4) * amp + Math.sin(time * 2.0) * 4 + springDy * 0.3;
-      const br8 = 38 + Math.cos(time * 0.8) * amp + Math.cos(time * 2.4) * 3 - springDx * 0.4;
-      dot.style.borderRadius = `${br1}% ${br2}% ${br3}% ${br4}% / ${br5}% ${br6}% ${br7}% ${br8}%`;
+      const dirX = Math.cos(heading);
+      const dirY = Math.sin(heading);
+      const springAlong = springDx * dirX + springDy * dirY;
+      const springCross = -springDx * dirY + springDy * dirX;
 
-      // ─ Breathing + velocity stretch ─
-      const breathe = 1 + Math.sin(time * 0.8) * 0.06;
-      const stretchX = breathe + Math.min(speed * 0.025, 0.5);
-      const stretchY = breathe / stretchX;
+      // Keep the drop asymmetry aligned with the travel vector.
+      const wobble = Math.sin(time * 0.9) * 1.5 + Math.cos(time * 1.4) * 1.1;
+      const topRear = clamp(56 - speedNorm * 8 - springCross * 0.4 + wobble, 30, 74);
+      const topFront = clamp(44 + speedNorm * 12 + springCross * 0.5 - wobble, 28, 72);
+      const bottomFront = clamp(46 + speedNorm * 10 - springCross * 0.45, 28, 74);
+      const bottomRear = clamp(58 - speedNorm * 7 + springCross * 0.35, 32, 76);
+      const verticalRear = clamp(60 - speedNorm * 6 + springAlong * 0.18, 36, 78);
+      const verticalFront = clamp(46 + speedNorm * 10 - springAlong * 0.18, 30, 72);
+      const verticalBottomFront = clamp(54 + speedNorm * 8 + modelInfluence * 4, 34, 76);
+      const verticalBottomRear = clamp(64 - speedNorm * 10, 34, 80);
+      const borderRadius =
+        `${topRear}% ${topFront}% ${bottomFront}% ${bottomRear}% / ` +
+        `${verticalRear}% ${verticalFront}% ${verticalBottomFront}% ${verticalBottomRear}%`;
+      if (dotBodyRef.current) {
+        dotBodyRef.current.style.borderRadius = borderRadius;
+      }
+
+      const highlightX = 29;
+      const highlightY = 23;
+      if (dotHighlightRef.current) {
+        dotHighlightRef.current.style.background = `
+          radial-gradient(circle at ${highlightX}% ${highlightY}%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.12) 22%, transparent 44%),
+          radial-gradient(circle at 74% 79%, rgba(255,255,255,0.05) 0%, transparent 28%)
+        `;
+      }
+
+      // ─ Scale: model size + forward stretch ─
+      const breathe = 1 + Math.sin(time * 0.7) * 0.025;
+      const contactInflation = modelInfluence * 0.22;
+      const stretchAlong = breathe + speedNorm * 0.28 + contactInflation + Math.abs(springAlong) * 0.006;
+      const stretchCross = clamp(
+        breathe - speedNorm * 0.12 + modelInfluence * 0.16 + Math.abs(springCross) * 0.003,
+        0.74,
+        1.65
+      );
+
+      const bodyScaleX = currentModelScale * stretchAlong;
+      const bodyScaleY = currentModelScale * stretchCross;
 
       gsap.set(dot, {
-        scaleX: stretchX + Math.abs(springDx) * 0.005,
-        scaleY: stretchY + Math.abs(springDy) * 0.005,
+        rotation: heading * (180 / Math.PI),
       });
+      if (dotBodyRef.current) {
+        gsap.set(dotBodyRef.current, {
+          width: DOT_SIZE * bodyScaleX,
+          height: DOT_SIZE * bodyScaleY,
+        });
+      }
+      if (dotHighlightRef.current) {
+        gsap.set(dotHighlightRef.current, {
+          rotation: heading * (-180 / Math.PI),
+          scaleX: clamp(1 / bodyScaleX, 0.7, 1.2),
+          scaleY: clamp(1 / bodyScaleY, 0.7, 1.2),
+        });
+      }
 
       prevDotX = cx;
       prevDotY = cy;
@@ -442,21 +529,48 @@ const ScrollPath: React.FC = () => {
           position: 'absolute',
           width: 130,
           height: 130,
-          borderRadius: '51% 49% 48% 52% / 62% 44% 56% 38%',
-          overflow: 'hidden',
-          background: `
-            radial-gradient(circle at 28% 22%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.1) 20%, transparent 42%),
-            radial-gradient(circle at 75% 78%, rgba(255,255,255,0.05) 0%, transparent 30%)
-          `,
-          backdropFilter: 'url(#liquid-glass-filter) blur(0.3px) brightness(1.08) contrast(1.05)',
-          WebkitBackdropFilter: 'url(#liquid-glass-filter) blur(0.3px) brightness(1.08) contrast(1.05)',
-          border: '1px solid rgba(255,255,255,0.22)',
-          boxShadow: '0 4px 10px rgba(0,0,0,0.15), inset 0 -6px 14px rgba(0,0,0,0.12), inset 0 6px 14px rgba(255,255,255,0.1)',
+          overflow: 'visible',
           pointerEvents: 'none',
           zIndex: 999,
-          willChange: 'transform, border-radius',
+          willChange: 'transform',
         }}
-      />
+      >
+        <div
+          ref={dotBodyRef}
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            width: 130,
+            height: 130,
+            transform: 'translate(-50%, -50%)',
+            borderRadius: '51% 49% 48% 52% / 62% 44% 56% 38%',
+            overflow: 'hidden',
+            backdropFilter: 'url(#liquid-glass-filter) blur(0.3px) brightness(1.08) contrast(1.05)',
+            WebkitBackdropFilter: 'url(#liquid-glass-filter) blur(0.3px) brightness(1.08) contrast(1.05)',
+            border: '1px solid rgba(255,255,255,0.22)',
+            boxShadow: '0 4px 10px rgba(0,0,0,0.15), inset 0 -6px 14px rgba(0,0,0,0.12), inset 0 6px 14px rgba(255,255,255,0.1)',
+            willChange: 'width, height, border-radius',
+          }}
+        >
+        <div
+          ref={dotHighlightRef}
+          style={{
+            position: 'absolute',
+            left: '-45%',
+            top: '-45%',
+            width: '190%',
+            height: '190%',
+            background: `
+              radial-gradient(circle at 28% 22%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.1) 20%, transparent 42%),
+              radial-gradient(circle at 75% 78%, rgba(255,255,255,0.05) 0%, transparent 30%)
+            `,
+            willChange: 'transform, background',
+            transformOrigin: '50% 50%',
+          }}
+        />
+        </div>
+      </div>
 
       {points.map((pt, i) => {
         const url = POINT_MODELS[i];

@@ -3,7 +3,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 
-const BLUE = new THREE.MeshBasicMaterial({ color: '#1119E9' });
+const BLUE = new THREE.MeshBasicMaterial({ color: '#0E2EFF' });
 
 interface ModelProps {
   url: string;

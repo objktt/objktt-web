@@ -19,19 +19,19 @@ export const translations = {
       },
       hours: {
         label: 'Opening Hours',
-        value: 'Tue–Fri | 5pm–11:30pm\nSat | 4pm–11:30pm\nSun | 4pm–11:00pm\nMon off',
+        value: 'Mon–Sun | 11am–11:30pm',
       }
     },
     home: {
-      heroTitle: 'A cozy space for records, taste, and connection.',
-      heroBody: 'We believe music needs time.\nPeople need air.\nObjects carry memory.',
       filterAll: 'All',
       stickyAbout: 'About Objktt',
       stickyEvents: 'Upcoming Events',
+      stickyShop: 'Shop',
       stickyLocation: 'We Are Here',
       stickyContact: 'Contact',
       viewAll: 'View all →',
       comingSoon: 'Coming Soon',
+      shopTitle: 'New\nArrivals',
       locationDesc: 'Yes, we\'re on the 4th floor — no elevator.\nBut the climb is worth it.\nWarm light, good sound, and a space\nthat feels like a deep breath.',
       transitLabel: 'Public Transit',
       transitDesc: 'Line 4, Myeongdong Station Exit 10.\nWalk straight for about 3 minutes,\nthen enter the building on your left.\n4F — no elevator.',
@@ -75,7 +75,20 @@ export const translations = {
       success: 'Message sent successfully.',
       error: 'Failed to send. Please try again.',
       info: 'For inquiries related to events, collaborations, or general questions.',
-    }
+    },
+    notices: {
+      title: 'Notices',
+      loading: 'Loading…',
+      error: 'Failed to load notices.',
+      empty: 'No notices yet.',
+      notFound: 'Notice not found.',
+    },
+    faq: {
+      title: 'FAQ',
+      loading: 'Loading…',
+      error: 'Failed to load FAQs.',
+      empty: 'No FAQs yet.',
+    },
   },
   ko: {
     nav: {
@@ -97,19 +110,19 @@ export const translations = {
       },
       hours: {
         label: 'Opening Hours',
-        value: 'Tue–Fri | 5pm–11:30pm\nSat | 4pm–11:30pm\nSun | 4pm–11:00pm\nMon off',
+        value: 'Mon–Sun | 11am–11:30pm',
       }
     },
     home: {
-      heroTitle: 'A cozy space for records, taste, and connection.',
-      heroBody: '음악에는 시간이 필요합니다.\n사람에게는 여백이 필요합니다.\n사물에는 기억이 깃듭니다.',
       filterAll: 'All',
       stickyAbout: 'About Objktt',
       stickyEvents: 'Upcoming Events',
+      stickyShop: 'Shop',
       stickyLocation: 'We Are Here',
       stickyContact: 'Contact',
       viewAll: '전체 보기 →',
       comingSoon: 'Coming Soon',
+      shopTitle: 'New\nArrivals',
       locationDesc: '네, 4층입니다 — 엘리베이터는 없어요.\n하지만 올라올 만한 가치가 있습니다.\n따뜻한 조명, 좋은 소리, 그리고\n깊은 숨 같은 공간.',
       transitLabel: '대중교통',
       transitDesc: '4호선 명동역 10번 출구.\n직진으로 약 3분 걸으면\n왼편 건물로 들어오세요.\n4층 — 엘리베이터 없음.',
@@ -153,6 +166,19 @@ export const translations = {
       success: '메시지가 성공적으로 전달되었습니다.',
       error: '전송에 실패했습니다. 다시 시도해주세요.',
       info: '행사 대관, 협업 또는 기타 문의사항은\n이메일로 보내주세요.',
-    }
+    },
+    notices: {
+      title: '공지사항',
+      loading: '불러오는 중…',
+      error: '공지사항을 불러오지 못했습니다.',
+      empty: '아직 등록된 공지사항이 없습니다.',
+      notFound: '공지사항을 찾을 수 없습니다.',
+    },
+    faq: {
+      title: '자주 묻는 질문',
+      loading: '불러오는 중…',
+      error: 'FAQ를 불러오지 못했습니다.',
+      empty: '아직 등록된 FAQ가 없습니다.',
+    },
   }
 };

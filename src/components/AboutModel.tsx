@@ -4,7 +4,7 @@ import { useGLTF, Float, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import CursorEffect from './CursorEffect';
 
-const BLUE = new THREE.MeshBasicMaterial({ color: '#1119E9' });
+const BLUE = new THREE.MeshBasicMaterial({ color: '#0E2EFF' });
 
 const Monstera: React.FC<{ dragRotation: number }> = ({ dragRotation }) => {
   const { scene } = useGLTF('/models/monstera.glb');

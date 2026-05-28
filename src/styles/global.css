@@ -6,8 +6,9 @@
   --color-bg: #FFFFFF;
   --color-text: #000000;
   --color-line: rgba(0, 0, 0, 0.2);
-  --color-accent: #FF3333; /* Minimal accent if needed */
-  
+  --color-accent: #0E2EFF; /* Active Blue — brand */
+  --color-pale: #B8C9D9;   /* Pale Blue Dot — quiet/system */
+
   --grid-gap: 1px; /* Gap becomes the line thickness if we use background color for lines */
   --grid-columns: 12;
   --header-height: 60px;
@@ -17,6 +18,8 @@
   --color-bg: #000000;
   --color-text: #F2F2F2;
   --color-line: rgba(255, 255, 255, 0.2);
+  --color-accent: #0E2EFF;
+  --color-pale: #6B7A8A;
 }
 
 * {

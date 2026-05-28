@@ -4,12 +4,10 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 
 type ViewMode = 'thumbnail' | 'list';
-type TimeFilter = 'upcoming' | 'past';
 
 const Events: React.FC = () => {
   const [activeItem, setActiveItem] = useState<string | null>(null);
   const [filter, setFilter] = useState('All');
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>('upcoming');
   const [viewMode, setViewMode] = useState<ViewMode>('thumbnail');
   const { language, t } = useLanguage();
   const { isMobile } = useBreakpoint();
@@ -22,21 +20,23 @@ const Events: React.FC = () => {
     return new Date(y, m - 1, d);
   };
 
-  const upcomingEvents = events
-    .filter(e => parseDate(e.date) >= today)
-    .sort((a, b) => parseDate(a.date).getTime() - parseDate(b.date).getTime());
+  // Upcoming first (ascending), then past (most recent first) — unified list.
+  const allEvents = [...events].sort((a, b) => {
+    const da = parseDate(a.date).getTime();
+    const db = parseDate(b.date).getTime();
+    const t = today.getTime();
+    const aFuture = da >= t;
+    const bFuture = db >= t;
+    if (aFuture && !bFuture) return -1;
+    if (!aFuture && bFuture) return 1;
+    return aFuture ? da - db : db - da;
+  });
 
-  const pastEvents = events
-    .filter(e => parseDate(e.date) < today)
-    .sort((a, b) => parseDate(b.date).getTime() - parseDate(a.date).getTime());
-
-  const timeFiltered = timeFilter === 'upcoming' ? upcomingEvents : pastEvents;
-
-  const eventTypes = ['All', ...new Set(timeFiltered.map(event => event.type))];
+  const eventTypes = ['All', ...new Set(allEvents.map(event => event.type))];
 
   const filteredEvents = filter === 'All'
-    ? timeFiltered
-    : timeFiltered.filter(event => event.type === filter);
+    ? allEvents
+    : allEvents.filter(event => event.type === filter);
 
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const formatDate = (dateStr: string) => {
@@ -96,119 +96,11 @@ const Events: React.FC = () => {
             </h2>
           </div>
 
-          {/* Program Descriptions */}
-          <div style={{
-            padding: isMobile ? '0 1.5rem 3rem' : '0 4rem 4rem',
-            display: 'flex',
-            flexDirection: isMobile ? 'column' : 'row',
-            gap: isMobile ? '2.5rem' : '4rem',
-          }}>
-            {/* KLANG */}
-            <div style={{ flex: 1 }}>
-              <div style={{
-                fontSize: '0.6875rem',
-                fontWeight: 500,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                opacity: 0.4,
-                marginBottom: '0.75rem',
-              }}>
-                Every Saturday
-              </div>
-              <div style={{
-                fontSize: isMobile ? '1.5rem' : '1.75rem',
-                fontWeight: 500,
-                marginBottom: '0.75rem',
-              }}>
-                OBJkTT KLANG
-              </div>
-              <p style={{
-                fontSize: '0.9375rem',
-                lineHeight: 1.7,
-                opacity: 0.6,
-              }}>
-                Movement. A weekly DJ session with rotating genre themes.
-                The routine is the point — every Saturday, the space comes alive with sound.
-              </p>
-            </div>
-
-            {/* KOLLEKTION */}
-            <div style={{ flex: 1 }}>
-              <div style={{
-                fontSize: '0.6875rem',
-                fontWeight: 500,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                opacity: 0.4,
-                marginBottom: '0.75rem',
-              }}>
-                Every Sunday
-              </div>
-              <div style={{
-                fontSize: isMobile ? '1.5rem' : '1.75rem',
-                fontWeight: 500,
-                marginBottom: '0.75rem',
-              }}>
-                OBJkTT KOLLEKTION
-              </div>
-              <p style={{
-                fontSize: '0.9375rem',
-                lineHeight: 1.7,
-                opacity: 0.6,
-              }}>
-                Accumulation. 10 Records, 1 Collector, 1 Theme.
-                A numbered archive of personal taste — each session builds on the last.
-              </p>
-            </div>
-          </div>
-
-          {/* Time + Type Filter */}
+          {/* Type Filter */}
           <div style={{
             padding: isMobile ? '0 1.5rem 2rem' : '0 4rem 2rem',
-            display: 'flex',
-            flexDirection: isMobile ? 'column' : 'row',
-            gap: isMobile ? '1rem' : '2rem',
-            alignItems: isMobile ? 'flex-start' : 'center',
           }}>
-            {/* Upcoming / Past */}
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button
-                onClick={() => { setTimeFilter('upcoming'); setFilter('All'); }}
-                style={{
-                  fontSize: '0.875rem',
-                  fontWeight: timeFilter === 'upcoming' ? 700 : 400,
-                  opacity: timeFilter === 'upcoming' ? 1 : 0.5,
-                  padding: 0,
-                  transition: 'opacity 0.2s ease',
-                }}
-              >
-                Upcoming
-              </button>
-              <button
-                onClick={() => { setTimeFilter('past'); setFilter('All'); }}
-                style={{
-                  fontSize: '0.875rem',
-                  fontWeight: timeFilter === 'past' ? 700 : 400,
-                  opacity: timeFilter === 'past' ? 1 : 0.5,
-                  padding: 0,
-                  transition: 'opacity 0.2s ease',
-                }}
-              >
-                Past
-              </button>
-            </div>
-
-            {/* Divider */}
-            {!isMobile && (
-              <div style={{
-                width: '1px',
-                height: '1rem',
-                backgroundColor: 'var(--color-line)',
-              }} />
-            )}
-
-            {/* Type filter */}
-            <div className="filter-row" style={{ display: 'flex', gap: '1.5rem' }}>
+            <div className="filter-row" style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
               {eventTypes.map((type) => (
                 <button
                   key={type}

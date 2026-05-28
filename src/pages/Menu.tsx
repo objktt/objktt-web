@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useBreakpoint } from '../hooks/useBreakpoint';
+import { useLanguage } from '../contexts/LanguageContext';
 
 import imgObjktt from '../assets/img/menu/obj_objktt.jpeg';
 import imgGreen from '../assets/img/menu/obj_green.jpeg';
@@ -12,6 +13,18 @@ import imgBanana from '../assets/img/menu/obj_banana.jpeg';
 import imgSorbet from '../assets/img/menu/obj_sorbet.jpeg';
 import imgPopcorn from '../assets/img/menu/obj_popcorn.jpeg';
 import imgIcecreamcake from '../assets/img/menu/obj_icecreamcake.jpeg';
+import imgGosuramen from '../assets/img/menu/obj_gosuramen.jpeg';
+import imgTomatoSoup from '../assets/img/menu/obj_tomato_soup.jpeg';
+import imgBrunch from '../assets/img/menu/obj_brunch.jpeg';
+import imgWineImpero from '../assets/img/menu/wine_impero.jpeg';
+import imgWineTrambusti from '../assets/img/menu/wine_trambusti.jpeg';
+import imgWineCanadaNegra from '../assets/img/menu/wine_canada_negra.jpeg';
+import imgWineBajo from '../assets/img/menu/wine_bajo.jpeg';
+import imgWinePureEst from '../assets/img/menu/wine_pure_est.jpeg';
+import imgWineDonaFlor from '../assets/img/menu/wine_dona_flor.jpeg';
+import imgWineVistamar from '../assets/img/menu/wine_vistamar.jpeg';
+import imgWineMoet from '../assets/img/menu/wine_moet.jpeg';
+import imgWineMuchasManos from '../assets/img/menu/wine_muchas_manos.jpeg';
 
 interface MenuItem {
   name: string;
@@ -26,6 +39,34 @@ interface MenuCategory {
 }
 
 const menuData: MenuCategory[] = [
+  {
+    title: 'Coffee & Drinks',
+    items: [
+      { name: 'OBJKTT Coffee (Hot / Ice)', nameKr: '오브옉트 싱글 오리진 커피', description: 'Bean Options: Ethiopia Yirgacheffe Koke G2 / Brazil Cerrado\n에티오피아 예가체프 코케 G2와 브라질 세하도 원두 중 선택' },
+      { name: 'Café au Lait', nameKr: '카페 오레', description: 'Drip coffee topped with a thin layer of steamed milk.' },
+      { name: 'OBJKTT Ade', nameKr: '오브옉트 에이드', description: 'Seasonal fruit ade with house-made syrup' },
+      { name: 'House-made Lemonade', nameKr: '수제 레몬에이드', description: 'Freshly squeezed lemon with sparkling water' },
+      { name: 'Black Sugar Pearl Milk Tea', nameKr: '흑당 펄 밀크티', description: 'Rich black sugar syrup and premium milk tea, served with tapioca pearls.' },
+      { name: 'Milk Tea', nameKr: '밀크티', description: 'House-blended tea with steamed whole milk' },
+      { name: 'Ginger Tea', nameKr: '진저티', description: 'Fresh ginger with honey and warm lemon' },
+      { name: 'Tea Selection', nameKr: '오브옉트 티 셀렉션', description: 'Chamomile / Peppermint / Earl Grey' },
+    ],
+  },
+  {
+    title: 'Bakery',
+    items: [
+      { name: 'Levain Cookie', nameKr: '르뱅 쿠키', description: 'Crispy outside, chewy inside — baked fresh daily' },
+      { name: 'Egg Tart', nameKr: '에그 타르트', description: 'Silky egg custard in a buttery pastry shell' },
+      { name: 'Financier', nameKr: '휘낭시에', description: 'Plain / Lemon / Chocolate — browned butter almond cake' },
+    ],
+  },
+  {
+    title: 'Brunch',
+    items: [
+      { name: 'OBJKTT Fresh Garden Brunch', nameKr: '오브옉트 프레시 가든 브런치', description: 'Brunch with fresh seasonal vegetables, eggs, and premium ingredients', image: imgBrunch },
+      { name: 'Tomato Soup & Bread', nameKr: '토마토 스프 & 브레드', description: 'Rich velvety tomato soup with house-made garlic baguette', image: imgTomatoSoup },
+    ],
+  },
   {
     title: 'Cocktail',
     items: [
@@ -68,18 +109,33 @@ const menuData: MenuCategory[] = [
   {
     title: 'Wine',
     items: [
-      { name: 'House Wine', nameKr: '하우스 와인', description: 'Red or White' },
-      { name: 'Sparkling Wine', nameKr: '스파클링 와인' },
-      { name: 'Buddy Chardonnay', nameKr: '버디 샤르도네' },
-      { name: 'Voltaccino Bianco di Toscana', nameKr: '볼타치노 비앙코' },
-      { name: 'Pinot Grigio delle Venezie DOC', nameKr: '피노 그리지오 델레 베네지에' },
-      { name: 'Quasar Sauvignon Blanc', nameKr: '콰사르 소비뇽 블랑' },
-      { name: 'Tread Softly Grenache', nameKr: '트레드 소프트 그르나슈' },
-      { name: 'Quasar Cabernet Sauvignon', nameKr: '콰사르 카베르네 소비뇽' },
-      { name: "Barbera d'Asti DOCG", nameKr: '바르베라 다스티' },
-      { name: 'Imperial Collection Cabernet Sauvignon', nameKr: '임페리얼 컬렉션 카베르네 소비뇽' },
-      { name: 'Felis Catignon', nameKr: '펠리스 카티뇽' },
-      { name: 'Trechas Manos Brut', nameKr: '트레차스 마노스 브뤼' },
+      { name: 'House Wine (Red / White)', nameKr: '하우스 와인' },
+    ],
+  },
+  {
+    title: 'Red Wine',
+    items: [
+      { name: 'Impero Cabernet Sauvignon', nameKr: '임페로 컬렉션 카베르네 소비뇽', description: '2022 · ITALY · DRY — Rich red fruit aromas with smooth, elegant tannins.', image: imgWineImpero },
+      { name: 'Trambusti Cavalleresco', nameKr: '트람부스티 카발레레스코', description: '2023 · ITALY · DRY — Traditional Italian red with balanced acidity and refined structure.', image: imgWineTrambusti },
+      { name: 'Canada Negra Tempranillo-Monastrell', nameKr: '카나다 네그라 템프라니요-모나스트렐', description: '2024 · SPAIN · DRY — Deep color with concentrated fruit flavors and a hint of spice.', image: imgWineCanadaNegra },
+      { name: 'Bajo Montepulciano', nameKr: '바조 몬테풀치아노', description: '2023 · ITALY · DRY — A supple daily red wine with charming cherry and blackberry notes.', image: imgWineBajo },
+      { name: 'Oscuridad Cabernet Sauvignon', nameKr: '오스쿠리다 카베르네 소비뇽', description: '2024 · SPAIN · DRY — Deep ruby wine with moderate weight and a comfortable finish.' },
+    ],
+  },
+  {
+    title: 'White Wine',
+    items: [
+      { name: 'Pure Est Verdejo', nameKr: '퓨어 에스트 베르데호', description: '2023 · SPAIN · DRY — Delightful acidity with vibrant tropical fruit notes.', image: imgWinePureEst },
+      { name: 'Dona Flor Vinho Verde', nameKr: '도나 플로르 비뉴 베르데', description: 'NV · PORTUGAL · SLIGHTLY SWEET — Lightly carbonated ‘Green Wine’ with a fresh, crisp character.', image: imgWineDonaFlor },
+      { name: 'Oscuridad Chardonnay', nameKr: '오스쿠리다 샤르도네', description: '2025 · SPAIN · DRY — Ripe apple and citrus aromas with a smooth, pleasant mouthfeel.' },
+      { name: 'Vistamar Brisa Chardonnay', nameKr: '비스타마르 브리사 샤르도네', description: '2024 · CHILE · DRY — Rich fruit flavors with a clean and refreshing finish.', image: imgWineVistamar },
+    ],
+  },
+  {
+    title: 'Champagne & Sparkling Wine',
+    items: [
+      { name: 'Moët & Chandon Impérial 375ml', nameKr: '모엣 샹동 임페리얼', description: 'FRANCE · DRY — The world’s most loved champagne, known for its bright fruitiness.', image: imgWineMoet },
+      { name: 'Muchas Manos Brut', nameKr: '무차스 마노스 브뤼', description: 'NV · ITALY · DRY — Delicate bubbles and refreshing aroma for a festive atmosphere.', image: imgWineMuchasManos },
     ],
   },
   {
@@ -87,7 +143,7 @@ const menuData: MenuCategory[] = [
     items: [
       { name: 'Objktt Plate', nameKr: '오브옉트 플레이트', description: 'Tomato, Cheese and Olive', image: imgPlate },
       { name: 'Objktt Slice Pizza', nameKr: '오브옉트 조각 피자', description: 'A one-quarter classic Margherita-style slice topped with fresh basil', image: imgPizza },
-      { name: 'Tomato Coriander Ramen', nameKr: '토마토 고수 라면', description: 'Spicy & Tangy Tomato Ramen with Coriander' },
+      { name: 'Tomato Coriander Ramen', nameKr: '토마토 고수 라면', description: 'Spicy & Tangy Tomato Ramen with Coriander', image: imgGosuramen },
       { name: 'Banana Cinnamon Brûlée', nameKr: '바나나 시나몬 브륄레', description: 'Caramelized brûlée with sliced bananas and a touch of cinnamon', image: imgBanana },
       { name: 'Strawberry Sorbet', nameKr: '딸기 바나나 샤베', description: 'Strawberry-banana sorbet with a smooth, fruity finish', image: imgSorbet },
       { name: 'Truffle Oil Popcorn', nameKr: '트러플 오일 팝콘', description: 'Truffle-scented popcorn, perfect with beer', image: imgPopcorn },
@@ -105,6 +161,7 @@ const menuData: MenuCategory[] = [
 
 const Menu: React.FC = () => {
   const { isMobile } = useBreakpoint();
+  const { language } = useLanguage();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
@@ -153,6 +210,17 @@ const Menu: React.FC = () => {
           }}>
             Menu
           </h2>
+          <p style={{
+            marginTop: '1.5rem',
+            fontSize: '0.875rem',
+            opacity: 0.6,
+            fontWeight: 400,
+            letterSpacing: '0.02em',
+          }}>
+            {language === 'en' 
+              ? '* Cafe menu can be ordered until 6:00 PM.' 
+              : '* 카페 메뉴는 오후 6시까지만 주문이 가능합니다.'}
+          </p>
         </div>
 
         {/* Menu Categories */}
@@ -196,6 +264,7 @@ const Menu: React.FC = () => {
                       opacity: 0.5,
                       marginTop: '0.25rem',
                       lineHeight: 1.5,
+                      whiteSpace: 'pre-line',
                     }}>
                       {item.description}
                     </p>

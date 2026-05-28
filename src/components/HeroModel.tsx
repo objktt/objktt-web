@@ -3,8 +3,9 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { useGLTF, Float, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import CursorEffect from './CursorEffect';
+import KineticText from './KineticText';
 
-const BLUE = new THREE.MeshBasicMaterial({ color: '#1119E9' });
+const BLUE = new THREE.MeshBasicMaterial({ color: '#0E2EFF' });
 
 const ReelToReel: React.FC<{ dragRotation: number }> = ({ dragRotation }) => {
   const { scene } = useGLTF('/models/reel-to-reel.glb');
@@ -96,6 +97,7 @@ const HeroModel: React.FC = () => {
         <directionalLight position={[5, 5, 5]} intensity={0.8} />
         <Suspense fallback={null}>
           <Environment preset="studio" />
+          <KineticText radius={3.5} height={10} color="#000000" />
           <ReelToReel dragRotation={dragRotation} />
           <CursorEffect mouseRef={mouseRef} />
         </Suspense>

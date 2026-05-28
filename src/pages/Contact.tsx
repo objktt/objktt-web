@@ -1,11 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import Grid from '../components/GridSystem';
-import emailjs from '@emailjs/browser';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 
 const Contact: React.FC = () => {
-  const formRef = useRef<HTMLFormElement>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -15,27 +13,20 @@ const Contact: React.FC = () => {
   const { t } = useLanguage();
   const { isMobile } = useBreakpoint();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus('sending');
-
-    // EmailJS Service
-    // NOTE: Replace these with your actual Service ID, Template ID, and Public Key
-    // You can find these in your EmailJS dashboard: https://dashboard.emailjs.com/
-    const SERVICE_ID = 'service_vgxq9ev';
-    const TEMPLATE_ID = 'template_oxzhf08';
-    const PUBLIC_KEY = 'FhaoMuWPdR1b2o9MU';
-
-    if (formRef.current) {
-      emailjs.sendForm(SERVICE_ID, TEMPLATE_ID, formRef.current, PUBLIC_KEY)
-        .then((result) => {
-            console.log(result.text);
-            setStatus('success');
-            setFormData({ name: '', email: '', message: '' }); // Clear form
-        }, (error) => {
-            console.log(error.text);
-            setStatus('error');
-        });
+    try {
+      const r = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      if (!r.ok) throw new Error('send failed');
+      setStatus('success');
+      setFormData({ name: '', email: '', message: '' });
+    } catch {
+      setStatus('error');
     }
   };
 
@@ -80,7 +71,7 @@ const Contact: React.FC = () => {
       <Grid>
 
         <div style={{ gridColumn: '2 / 8' }}>
-          <form ref={formRef} onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '2rem' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', opacity: 0.6 }}>{t.contact.name}</label>
               <input
