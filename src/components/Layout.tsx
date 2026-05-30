@@ -299,6 +299,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <NavLink to="/faq" style={{ color: 'inherit', textDecoration: 'none' }}>
                 {t.faq.title}
               </NavLink>
+              <NavLink to="/privacy" style={{ color: 'inherit', textDecoration: 'none' }}>
+                {t.privacy.title}
+              </NavLink>
             </div>
           </div>
         </Grid>

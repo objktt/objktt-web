@@ -11,6 +11,7 @@ import ShopProduct from './pages/ShopProduct'
 import Notices from './pages/Notices'
 import NoticeDetail from './pages/NoticeDetail'
 import FAQ from './pages/FAQ'
+import Privacy from './pages/Privacy'
 import { LanguageProvider } from './contexts/LanguageContext'
 import { CartProvider } from './contexts/CartContext'
 
@@ -30,6 +31,7 @@ function App() {
             <Route path="/notices" element={<Notices />} />
             <Route path="/notices/:handle" element={<NoticeDetail />} />
             <Route path="/faq" element={<FAQ />} />
+            <Route path="/privacy" element={<Privacy />} />
             <Route path="/contact" element={<Contact />} />
           </Routes>
         </Layout>

@@ -89,6 +89,41 @@ export const translations = {
       error: 'Failed to load FAQs.',
       empty: 'No FAQs yet.',
     },
+    privacy: {
+      title: 'Privacy Policy',
+      updated: 'Last updated: February 18, 2026',
+      intro: 'Objktt ("we", "us", or "our") respects your privacy. This policy explains what personal information we collect, how we use it, and the rights you have regarding your information.',
+      sections: [
+        {
+          heading: '1. Information We Collect',
+          body: 'When you contact us, sign up for updates, or place an order through our shop, we may collect your name, email address, phone number, shipping address, and the contents of your messages. We also collect anonymous usage data through analytics tools to understand how visitors use the site.',
+        },
+        {
+          heading: '2. How We Use Your Information',
+          body: 'We use your information to respond to inquiries, process and ship orders, send updates you have requested, and improve our website and services. We do not use your information for purposes unrelated to those described here without your consent.',
+        },
+        {
+          heading: '3. Sharing & Third Parties',
+          body: 'We do not sell your personal information. We share information only with service providers that help us operate, such as Shopify (online shop), EmailJS (contact form delivery), and Google Analytics (site usage). These providers process data on our behalf and under their own privacy policies.',
+        },
+        {
+          heading: '4. Cookies & Analytics',
+          body: 'Our site uses cookies and similar technologies to remember your preferences (such as language and theme) and to measure traffic. You can disable cookies in your browser settings, though some features may not work as intended.',
+        },
+        {
+          heading: '5. Data Retention',
+          body: 'We keep personal information only as long as necessary to fulfill the purposes described in this policy, or as required by applicable law. Order records may be retained for legal and accounting obligations.',
+        },
+        {
+          heading: '6. Your Rights',
+          body: 'You may request access to, correction of, or deletion of your personal information at any time. To exercise these rights, contact us at hello@objktt.kr.',
+        },
+        {
+          heading: '7. Contact',
+          body: 'Objktt\nSeoul, Jung-gu, Myeongdong 8ga-gil, 58 4F\nhello@objktt.kr',
+        },
+      ],
+    },
   },
   ko: {
     nav: {
@@ -179,6 +214,41 @@ export const translations = {
       loading: '불러오는 중…',
       error: 'FAQ를 불러오지 못했습니다.',
       empty: '아직 등록된 FAQ가 없습니다.',
+    },
+    privacy: {
+      title: '개인정보 처리방침',
+      updated: '최종 수정일: 2026년 2월 18일',
+      intro: '오브옉트(이하 "회사")는 이용자의 개인정보를 소중히 다룹니다. 본 방침은 회사가 수집하는 개인정보의 항목, 이용 목적, 그리고 이용자의 권리에 대해 안내합니다.',
+      sections: [
+        {
+          heading: '1. 수집하는 개인정보 항목',
+          body: '문의, 소식 구독, 또는 온라인 숍 주문 시 이름, 이메일 주소, 전화번호, 배송지 주소, 문의 내용을 수집할 수 있습니다. 또한 방문자의 사이트 이용 행태를 파악하기 위해 분석 도구를 통해 익명의 이용 데이터를 수집합니다.',
+        },
+        {
+          heading: '2. 개인정보의 이용 목적',
+          body: '수집한 정보는 문의 응대, 주문 처리 및 배송, 요청하신 소식 발송, 그리고 웹사이트와 서비스 개선을 위해 이용됩니다. 본 방침에 명시된 목적과 무관한 용도로는 이용자의 동의 없이 사용하지 않습니다.',
+        },
+        {
+          heading: '3. 개인정보의 제3자 제공',
+          body: '회사는 이용자의 개인정보를 판매하지 않습니다. 서비스 운영에 필요한 위탁업체(온라인 숍 Shopify, 문의 전송 EmailJS, 사이트 분석 Google Analytics)에 한해 정보를 제공하며, 해당 업체는 자체 개인정보 처리방침에 따라 회사를 대신하여 데이터를 처리합니다.',
+        },
+        {
+          heading: '4. 쿠키 및 분석 도구',
+          body: '본 사이트는 언어와 테마 등 이용자의 설정을 기억하고 방문 통계를 측정하기 위해 쿠키 및 유사 기술을 사용합니다. 브라우저 설정에서 쿠키를 비활성화할 수 있으나 일부 기능이 정상 동작하지 않을 수 있습니다.',
+        },
+        {
+          heading: '5. 개인정보의 보유 기간',
+          body: '회사는 본 방침에 명시된 목적 달성에 필요한 기간 또는 관계 법령에서 정한 기간 동안에만 개인정보를 보유합니다. 주문 기록은 법적·회계상 의무 이행을 위해 보관될 수 있습니다.',
+        },
+        {
+          heading: '6. 이용자의 권리',
+          body: '이용자는 언제든지 본인의 개인정보에 대한 열람, 정정, 삭제를 요청할 수 있습니다. 권리 행사를 원하시면 hello@objktt.kr로 연락해 주세요.',
+        },
+        {
+          heading: '7. 문의처',
+          body: '오브옉트\n서울 중구 명동8가길 58, 4층\nhello@objktt.kr',
+        },
+      ],
     },
   }
 };
