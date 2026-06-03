@@ -276,7 +276,7 @@ const ShopProduct: React.FC = () => {
                 margin: 0,
               }}
             >
-              {record.title}
+              {record.album || record.title}
             </h1>
           </div>
 
@@ -533,7 +533,6 @@ const ShopProduct: React.FC = () => {
               borderTop: '1px solid var(--color-line)',
             }}
           >
-            <SpecRow label="Album" value={record.album} />
             <SpecRow label="Label" value={record.label} />
             <SpecRow label="Catalog No." value={record.catalogNumber} />
             <SpecRow label="Year" value={record.releaseYear} />

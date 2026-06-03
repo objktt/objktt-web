@@ -987,7 +987,7 @@ const RecordCard: React.FC<RecordCardProps> = ({ record, hovered, onHover }) => 
             lineHeight: 1.3,
           }}
         >
-          {record.title}
+          {record.album || record.title}
         </div>
         <div
           style={{
