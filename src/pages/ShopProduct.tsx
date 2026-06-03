@@ -46,12 +46,14 @@ const ShopProduct: React.FC = () => {
   const { addItem, buyNow, loading: cartLoading, error: cartError } = useCart();
   const [pendingAction, setPendingAction] = useState<'add' | 'buy' | null>(null);
   const [openTrack, setOpenTrack] = useState<number | null>(null);
+  const [imgIndex, setImgIndex] = useState(0);
 
   useEffect(() => {
     if (!handle) return;
     let cancelled = false;
     setLoading(true);
     setOpenTrack(null);
+    setImgIndex(0);
     getRecordByHandle(handle)
       .then((data) => {
         if (!cancelled) {
@@ -100,7 +102,22 @@ const ShopProduct: React.FC = () => {
 
   const variant = record.variants[0];
   const soldOut = variant ? !variant.availableForSale : false;
-  const featured = record.featuredImage ?? record.images[0] ?? null;
+  // Gallery: all product images (featured is normally images[0]); de-dupe by url.
+  const gallery = (
+    record.images.length
+      ? record.images
+      : record.featuredImage
+      ? [record.featuredImage]
+      : []
+  ).filter((img, i, arr) => arr.findIndex((x) => x.url === img.url) === i);
+  const safeIndex = Math.min(imgIndex, Math.max(gallery.length - 1, 0));
+  const current = gallery[safeIndex] ?? null;
+  const go = (dir: number) =>
+    setImgIndex((i) => {
+      const n = gallery.length;
+      if (n === 0) return 0;
+      return (((i + dir) % n) + n) % n;
+    });
 
   return (
     <div style={{ padding: pad }}>
@@ -115,7 +132,7 @@ const ShopProduct: React.FC = () => {
           alignItems: 'start',
         }}
       >
-        {/* Image column */}
+        {/* Image column — carousel */}
         <div>
           <div
             style={{
@@ -126,10 +143,11 @@ const ShopProduct: React.FC = () => {
               position: 'relative',
             }}
           >
-            {featured ? (
+            {current ? (
               <img
-                src={featured.url}
-                alt={featured.altText ?? record.title}
+                key={current.url}
+                src={current.url}
+                alt={current.altText ?? record.title}
                 style={{
                   width: '100%',
                   height: '100%',
@@ -152,33 +170,82 @@ const ShopProduct: React.FC = () => {
                 No image
               </div>
             )}
+
+            {gallery.length > 1 && (
+              <>
+                <CarouselArrow dir="prev" onClick={() => go(-1)} />
+                <CarouselArrow dir="next" onClick={() => go(1)} />
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '0.75rem',
+                    left: 0,
+                    right: 0,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    gap: '0.4rem',
+                  }}
+                >
+                  {gallery.map((img, i) => (
+                    <button
+                      key={img.id}
+                      type="button"
+                      aria-label={`Image ${i + 1}`}
+                      onClick={() => setImgIndex(i)}
+                      style={{
+                        width: i === safeIndex ? '1.5rem' : '0.5rem',
+                        height: '0.5rem',
+                        padding: 0,
+                        border: 'none',
+                        borderRadius: '999px',
+                        cursor: 'pointer',
+                        backgroundColor: i === safeIndex ? '#fff' : 'rgba(255,255,255,0.5)',
+                        boxShadow: '0 0 0 1px rgba(0,0,0,0.15)',
+                        transition: 'width 0.2s ease, background-color 0.2s ease',
+                      }}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Thumbnails (if multiple images) */}
-          {record.images.length > 1 && (
+          {/* Thumbnails */}
+          {gallery.length > 1 && (
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: `repeat(${Math.min(record.images.length, 5)}, 1fr)`,
+                gridTemplateColumns: `repeat(${Math.min(gallery.length, 6)}, 1fr)`,
                 gap: '0.5rem',
                 marginTop: '0.75rem',
               }}
             >
-              {record.images.slice(0, 5).map((img) => (
-                <div
+              {gallery.map((img, i) => (
+                <button
                   key={img.id}
+                  type="button"
+                  aria-label={`View image ${i + 1}`}
+                  onClick={() => setImgIndex(i)}
                   style={{
                     aspectRatio: '1 / 1',
                     backgroundColor: 'var(--color-line)',
                     overflow: 'hidden',
+                    padding: 0,
+                    border:
+                      i === safeIndex
+                        ? '1px solid var(--color-text)'
+                        : '1px solid transparent',
+                    cursor: 'pointer',
+                    opacity: i === safeIndex ? 1 : 0.55,
+                    transition: 'opacity 0.2s ease, border-color 0.2s ease',
                   }}
                 >
                   <img
                     src={img.url}
                     alt={img.altText ?? ''}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                   />
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -498,6 +565,38 @@ const BackLink: React.FC = () => (
   >
     ← Back to Shop
   </Link>
+);
+
+const CarouselArrow: React.FC<{ dir: 'prev' | 'next'; onClick: () => void }> = ({
+  dir,
+  onClick,
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    aria-label={dir === 'prev' ? 'Previous image' : 'Next image'}
+    style={{
+      position: 'absolute',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      ...(dir === 'prev' ? { left: '0.75rem' } : { right: '0.75rem' }),
+      width: '2.25rem',
+      height: '2.25rem',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: '999px',
+      border: 'none',
+      cursor: 'pointer',
+      backgroundColor: 'rgba(255,255,255,0.85)',
+      color: '#111',
+      boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+    }}
+  >
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      {dir === 'prev' ? <path d="M10 3 L5 8 L10 13" /> : <path d="M6 3 L11 8 L6 13" />}
+    </svg>
+  </button>
 );
 
 const ConditionCard: React.FC<{ label: string; value: string | null | undefined }> = ({
