@@ -282,9 +282,10 @@ const ShopProduct: React.FC = () => {
             {variant && (
               <div
                 style={{
-                  fontSize: '1.5rem',
-                  fontWeight: 500,
-                  letterSpacing: '-0.01em',
+                  fontSize: isMobile ? '2rem' : '2.5rem',
+                  fontWeight: 600,
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1.1,
                 }}
               >
                 {formatKRW(variant.price.amount)}
