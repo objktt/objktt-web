@@ -269,6 +269,96 @@ const ShopProduct: React.FC = () => {
             </div>
           )}
 
+          {/* Price + CTA */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem',
+              paddingTop: '1rem',
+              borderTop: '1px solid var(--color-line)',
+            }}
+          >
+            {variant && (
+              <div
+                style={{
+                  fontSize: '1.5rem',
+                  fontWeight: 500,
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                {formatKRW(variant.price.amount)}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '0.75rem', flexDirection: isMobile ? 'column' : 'row' }}>
+              <button
+                type="button"
+                disabled={soldOut || !variant || cartLoading}
+                onClick={async () => {
+                  if (!variant) return;
+                  setPendingAction('add');
+                  try { await addItem(variant.id, 1); }
+                  catch { /* error surfaced below */ }
+                  finally { setPendingAction(null); }
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.95rem 1.5rem',
+                  fontSize: '0.95rem',
+                  fontWeight: 500,
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                  border: '1px solid var(--color-text)',
+                  backgroundColor: 'transparent',
+                  color: 'var(--color-text)',
+                  cursor: soldOut ? 'not-allowed' : 'pointer',
+                  opacity: soldOut ? 0.5 : 1,
+                  fontFamily: 'inherit',
+                  transition: 'opacity 0.2s ease, background-color 0.2s ease',
+                }}
+              >
+                {soldOut
+                  ? 'Sold out'
+                  : pendingAction === 'add' && cartLoading
+                  ? 'Adding…'
+                  : 'Add to cart'}
+              </button>
+              <button
+                type="button"
+                disabled={soldOut || !variant || cartLoading}
+                onClick={async () => {
+                  if (!variant) return;
+                  setPendingAction('buy');
+                  try { await buyNow(variant.id, 1); }
+                  catch { setPendingAction(null); }
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.95rem 1.5rem',
+                  fontSize: '0.95rem',
+                  fontWeight: 500,
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                  border: '1px solid var(--color-text)',
+                  backgroundColor: soldOut ? 'transparent' : 'var(--color-text)',
+                  color: soldOut ? 'var(--color-text)' : 'var(--color-bg)',
+                  cursor: soldOut ? 'not-allowed' : 'pointer',
+                  opacity: soldOut ? 0.5 : 1,
+                  fontFamily: 'inherit',
+                  transition: 'opacity 0.2s ease',
+                }}
+              >
+                {pendingAction === 'buy' && cartLoading ? 'Redirecting…' : 'Buy now →'}
+              </button>
+            </div>
+            {cartError && (
+              <div style={{ fontSize: '0.8rem', color: '#c33', marginTop: '0.5rem' }}>
+                {cartError}
+              </div>
+            )}
+          </div>
+
           {/* Tracklist */}
           {record.tracklist && record.tracklist.length > 0 && (
             <div
@@ -362,96 +452,6 @@ const ShopProduct: React.FC = () => {
               </ol>
             </div>
           )}
-
-          {/* Price + CTA */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.75rem',
-              paddingTop: '1rem',
-              borderTop: '1px solid var(--color-line)',
-            }}
-          >
-            {variant && (
-              <div
-                style={{
-                  fontSize: '1.5rem',
-                  fontWeight: 500,
-                  letterSpacing: '-0.01em',
-                }}
-              >
-                {formatKRW(variant.price.amount)}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', gap: '0.75rem', flexDirection: isMobile ? 'column' : 'row' }}>
-              <button
-                type="button"
-                disabled={soldOut || !variant || cartLoading}
-                onClick={async () => {
-                  if (!variant) return;
-                  setPendingAction('add');
-                  try { await addItem(variant.id, 1); }
-                  catch { /* error surfaced below */ }
-                  finally { setPendingAction(null); }
-                }}
-                style={{
-                  flex: 1,
-                  padding: '0.95rem 1.5rem',
-                  fontSize: '0.95rem',
-                  fontWeight: 500,
-                  letterSpacing: '0.04em',
-                  textTransform: 'uppercase',
-                  border: '1px solid var(--color-text)',
-                  backgroundColor: 'transparent',
-                  color: 'var(--color-text)',
-                  cursor: soldOut ? 'not-allowed' : 'pointer',
-                  opacity: soldOut ? 0.5 : 1,
-                  fontFamily: 'inherit',
-                  transition: 'opacity 0.2s ease, background-color 0.2s ease',
-                }}
-              >
-                {soldOut
-                  ? 'Sold out'
-                  : pendingAction === 'add' && cartLoading
-                  ? 'Adding…'
-                  : 'Add to cart'}
-              </button>
-              <button
-                type="button"
-                disabled={soldOut || !variant || cartLoading}
-                onClick={async () => {
-                  if (!variant) return;
-                  setPendingAction('buy');
-                  try { await buyNow(variant.id, 1); }
-                  catch { setPendingAction(null); }
-                }}
-                style={{
-                  flex: 1,
-                  padding: '0.95rem 1.5rem',
-                  fontSize: '0.95rem',
-                  fontWeight: 500,
-                  letterSpacing: '0.04em',
-                  textTransform: 'uppercase',
-                  border: '1px solid var(--color-text)',
-                  backgroundColor: soldOut ? 'transparent' : 'var(--color-text)',
-                  color: soldOut ? 'var(--color-text)' : 'var(--color-bg)',
-                  cursor: soldOut ? 'not-allowed' : 'pointer',
-                  opacity: soldOut ? 0.5 : 1,
-                  fontFamily: 'inherit',
-                  transition: 'opacity 0.2s ease',
-                }}
-              >
-                {pendingAction === 'buy' && cartLoading ? 'Redirecting…' : 'Buy now →'}
-              </button>
-            </div>
-            {cartError && (
-              <div style={{ fontSize: '0.8rem', color: '#c33', marginTop: '0.5rem' }}>
-                {cartError}
-              </div>
-            )}
-          </div>
 
           {/* Spec rows (meta info) */}
           <dl
