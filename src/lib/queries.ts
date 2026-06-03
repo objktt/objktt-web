@@ -17,7 +17,7 @@ const PRODUCT_FIELDS = /* GraphQL */ `
     width
     height
   }
-  images(first: 6) {
+  images(first: 20) {
     edges {
       node {
         id
