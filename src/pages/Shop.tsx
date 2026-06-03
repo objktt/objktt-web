@@ -868,9 +868,23 @@ interface RecordCardProps {
   onHover: (entering: boolean) => void;
 }
 
+const NEW_ARRIVAL_DAYS = 14;
+
 const RecordCard: React.FC<RecordCardProps> = ({ record, hovered, onHover }) => {
   const variant = record.variants[0];
   const soldOut = variant ? !variant.availableForSale : false;
+
+  const price = variant ? Number(variant.price.amount) : NaN;
+  const compareAt = variant?.compareAtPrice ? Number(variant.compareAtPrice.amount) : NaN;
+  const onSale = Number.isFinite(price) && Number.isFinite(compareAt) && compareAt > price;
+  const discountPct = onSale ? Math.round((1 - price / compareAt) * 100) : 0;
+
+  const isNew = (() => {
+    if (!record.createdAt) return false;
+    const created = new Date(record.createdAt).getTime();
+    if (!Number.isFinite(created)) return false;
+    return Date.now() - created < NEW_ARRIVAL_DAYS * 24 * 60 * 60 * 1000;
+  })();
 
   return (
     <Link
@@ -928,43 +942,66 @@ const RecordCard: React.FC<RecordCardProps> = ({ record, hovered, onHover }) => 
           </div>
         )}
 
-        {soldOut && (
-          <div
-            style={{
-              position: 'absolute',
-              top: '0.5rem',
-              left: '0.5rem',
-              padding: '0.25rem 0.55rem',
-              fontSize: '0.65rem',
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              backgroundColor: 'var(--color-bg)',
-              color: 'var(--color-text)',
-              border: '1px solid var(--color-line)',
-            }}
-          >
-            Sold
-          </div>
-        )}
-
-        {record.condition && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '0.5rem',
-              right: '0.5rem',
-              padding: '0.2rem 0.5rem',
-              fontSize: '0.65rem',
-              letterSpacing: '0.05em',
-              backgroundColor: 'var(--color-bg)',
-              color: 'var(--color-text)',
-              border: '1px solid var(--color-line)',
-              opacity: 0.85,
-            }}
-          >
-            {record.condition}
-          </div>
-        )}
+        {/* Status chips (top-left) */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '0.5rem',
+            left: '0.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: '0.35rem',
+          }}
+        >
+          {soldOut ? (
+            <span
+              style={{
+                padding: '0.25rem 0.55rem',
+                fontSize: '0.65rem',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                backgroundColor: 'var(--color-bg)',
+                color: 'var(--color-text)',
+                border: '1px solid var(--color-line)',
+              }}
+            >
+              Sold
+            </span>
+          ) : (
+            <>
+              {isNew && (
+                <span
+                  style={{
+                    padding: '0.25rem 0.55rem',
+                    fontSize: '0.65rem',
+                    fontWeight: 600,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    backgroundColor: 'var(--color-accent)',
+                    color: '#fff',
+                  }}
+                >
+                  New
+                </span>
+              )}
+              {onSale && (
+                <span
+                  style={{
+                    padding: '0.25rem 0.55rem',
+                    fontSize: '0.65rem',
+                    fontWeight: 600,
+                    letterSpacing: '0.03em',
+                    backgroundColor: 'var(--color-text)',
+                    color: 'var(--color-bg)',
+                  }}
+                >
+                  -{discountPct}%
+                </span>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Meta */}

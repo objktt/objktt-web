@@ -20,6 +20,7 @@ interface RawProductNode {
   vendor: string;
   productType: string;
   tags: string[];
+  createdAt: string;
   featuredImage: ShopifyImage | null;
   images: { edges: { node: ShopifyImage }[] };
   variants: { edges: { node: ShopifyVariant }[] };
@@ -126,6 +127,7 @@ function toVinylRecord(node: RawProductNode): VinylRecord {
     vendor: node.vendor,
     productType: node.productType,
     tags: node.tags,
+    createdAt: node.createdAt,
     featuredImage: node.featuredImage,
     images: node.images.edges.map((e) => e.node),
     variants: node.variants.edges.map((e) => e.node),

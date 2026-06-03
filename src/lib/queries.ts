@@ -10,6 +10,7 @@ const PRODUCT_FIELDS = /* GraphQL */ `
   vendor
   productType
   tags
+  createdAt
   featuredImage {
     id
     url
@@ -35,6 +36,10 @@ const PRODUCT_FIELDS = /* GraphQL */ `
         title
         availableForSale
         price {
+          amount
+          currencyCode
+        }
+        compareAtPrice {
           amount
           currencyCode
         }

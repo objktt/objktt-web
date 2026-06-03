@@ -20,6 +20,7 @@ export interface ShopifyVariant {
   title: string;
   availableForSale: boolean;
   price: ShopifyMoney;
+  compareAtPrice?: ShopifyMoney | null;
 }
 
 export interface ShopifyMetafield {
@@ -46,6 +47,7 @@ export interface VinylRecord {
   vendor: string;
   productType: string;
   tags: string[];
+  createdAt?: string; // ISO; used to flag new arrivals
   featuredImage: ShopifyImage | null;
   images: ShopifyImage[];
   variants: ShopifyVariant[];
