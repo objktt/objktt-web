@@ -532,7 +532,7 @@ const ConditionCard: React.FC<{ label: string; value: string | null | undefined 
               fontWeight: 600,
               lineHeight: 1,
               letterSpacing: '0.01em',
-              color: 'var(--color-bg)',
+              color: '#fff',
               backgroundColor: 'var(--color-accent)',
               borderRadius: '999px',
               whiteSpace: 'nowrap',
