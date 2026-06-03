@@ -995,14 +995,26 @@ const RecordCard: React.FC<RecordCardProps> = ({ record, hovered, onHover }) => 
             justifyContent: 'space-between',
             alignItems: 'baseline',
             marginTop: '0.35rem',
+            gap: '0.5rem',
           }}
         >
           {variant && (
-            <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>
+            <div style={{ fontSize: '0.9rem', fontWeight: 500, flexShrink: 0, whiteSpace: 'nowrap' }}>
               {formatKRW(variant.price.amount)}
             </div>
           )}
-          <div style={{ fontSize: '0.75rem', opacity: 0.5 }}>
+          <div
+            style={{
+              fontSize: '0.75rem',
+              opacity: 0.5,
+              minWidth: 0,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              textAlign: 'right',
+            }}
+            title={[record.label, record.releaseYear].filter(Boolean).join(' · ')}
+          >
             {[record.label, record.releaseYear].filter(Boolean).join(' · ')}
           </div>
         </div>
