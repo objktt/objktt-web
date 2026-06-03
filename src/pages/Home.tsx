@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import HeroScene from '../components/HeroScene';
-import HeroParallaxImages from '../components/HeroParallaxImages';
+// import HeroParallaxImages from '../components/HeroParallaxImages'; // hidden per request
 import { TextRevealByWord } from '../components/ui/TextReveal';
 import { getProductsByCategory } from '../lib/getProducts';
 import type { VinylRecord } from '../types/shopify';
@@ -78,8 +78,8 @@ const Home: React.FC = () => {
           textAlign: 'left',
         }}
       >
-        {/* Parallax background images */}
-        <HeroParallaxImages isMobile={isMobile} />
+        {/* Parallax background images — hidden per request (re-enable to restore) */}
+        {/* <HeroParallaxImages isMobile={isMobile} /> */}
 
         {/* Bottom-right scene (half size) */}
         <div style={{

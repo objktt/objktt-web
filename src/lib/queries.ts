@@ -52,6 +52,13 @@ const PRODUCT_FIELDS = /* GraphQL */ `
   kReleaseYear: metafield(namespace: "kolektt", key: "release_year") { value }
   kGenre: metafield(namespace: "kolektt", key: "genre") { value }
   kCondition: metafield(namespace: "kolektt", key: "media_condition") { value }
+  kSleeve: metafield(namespace: "kolektt", key: "sleeve_condition") { value }
+  kCatalog: metafield(namespace: "kolektt", key: "catalog_number") { value }
+  kCountry: metafield(namespace: "kolektt", key: "country") { value }
+  kSpeed: metafield(namespace: "kolektt", key: "speed") { value }
+  kEdition: metafield(namespace: "kolektt", key: "edition") { value }
+  kDiscCount: metafield(namespace: "kolektt", key: "disc_count") { value }
+  kTracklist: metafield(namespace: "kolektt", key: "tracklist") { value }
 `;
 
 export const PRODUCTS_QUERY = /* GraphQL */ `

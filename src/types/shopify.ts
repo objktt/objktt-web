@@ -28,9 +28,15 @@ export interface ShopifyMetafield {
   type: string;
 }
 
+/** A single tracklist entry; `url` is a preview/listen link (e.g. YouTube) when present. */
+export interface Track {
+  title: string;
+  url: string | null;
+}
+
 /**
  * Record-specific product shape.
- * Custom metafields under namespace `record` map to typed fields here.
+ * Custom metafields under namespace `record` (curated) or `kolektt` (hub) map here.
  */
 export interface VinylRecord {
   id: string;
@@ -49,7 +55,16 @@ export interface VinylRecord {
   label: string | null;
   releaseYear: string | null;
   genre: string | null;
-  condition: string | null;
+  condition: string | null; // primary (media) condition code, for cards
+  // Extended detail (mostly from the kolektt hub; optional — absent on mock data)
+  mediaCondition?: string | null;
+  sleeveCondition?: string | null;
+  catalogNumber?: string | null;
+  country?: string | null;
+  speed?: string | null;
+  edition?: string | null;
+  discCount?: string | null;
+  tracklist?: Track[];
 }
 
 export interface ShopifyConnection<T> {

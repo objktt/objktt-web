@@ -11,6 +11,16 @@ const formatKRW = (amount: string) => {
   return `₩${n.toLocaleString('ko-KR')}`;
 };
 
+// The kolektt hub appends a raw "Information Label … Tracklist … ▶ Preview …"
+// dump to the description. Structured fields + the Tracklist section now cover
+// that, so strip everything from the "Information Label" marker onward and keep
+// only the human-written intro.
+const cleanDescription = (desc: string | null | undefined): string => {
+  if (!desc) return '';
+  const idx = desc.search(/\s*Information\s+Label\b/i);
+  return (idx === -1 ? desc : desc.slice(0, idx)).trim();
+};
+
 const ShopProduct: React.FC = () => {
   const { handle } = useParams<{ handle: string }>();
   const { isMobile } = useBreakpoint();
@@ -199,14 +209,90 @@ const ShopProduct: React.FC = () => {
           >
             <SpecRow label="Album" value={record.album} />
             <SpecRow label="Label" value={record.label} />
+            <SpecRow label="Catalog No." value={record.catalogNumber} />
             <SpecRow label="Year" value={record.releaseYear} />
+            <SpecRow label="Country" value={record.country} />
             <SpecRow label="Genre" value={record.genre} />
-            <SpecRow label="Condition" value={record.condition} />
             <SpecRow label="Format" value={record.productType} />
+            <SpecRow label="Speed" value={record.speed} />
+            <SpecRow label="Edition" value={record.edition} />
+            {Number(record.discCount) > 1 && (
+              <SpecRow label="Discs" value={record.discCount} />
+            )}
+            {record.mediaCondition || record.sleeveCondition ? (
+              <>
+                <SpecRow label="Media" value={record.mediaCondition} />
+                <SpecRow label="Sleeve" value={record.sleeveCondition} />
+              </>
+            ) : (
+              <SpecRow label="Condition" value={record.condition} />
+            )}
           </dl>
 
+          {/* Tracklist */}
+          {record.tracklist && record.tracklist.length > 0 && (
+            <div
+              style={{
+                paddingTop: '1rem',
+                borderTop: '1px solid var(--color-line)',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '0.75rem',
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  opacity: 0.5,
+                  marginBottom: '0.85rem',
+                }}
+              >
+                Tracklist
+              </div>
+              <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                {record.tracklist.map((t, i) => (
+                  <li
+                    key={i}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'baseline',
+                      gap: '0.65rem',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    <span style={{ opacity: 0.4, minWidth: '1.4rem', fontVariantNumeric: 'tabular-nums' }}>
+                      {i + 1}
+                    </span>
+                    <span style={{ flex: 1 }}>{t.title}</span>
+                    {t.url && (
+                      <a
+                        href={t.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`Preview ${t.title}`}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          fontSize: '0.7rem',
+                          letterSpacing: '0.06em',
+                          textTransform: 'uppercase',
+                          opacity: 0.6,
+                          color: 'inherit',
+                          textDecoration: 'none',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        <span aria-hidden style={{ fontSize: '0.65rem' }}>▶</span> Preview
+                      </a>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
           {/* Description */}
-          {record.description && (
+          {cleanDescription(record.description) && (
             <div
               style={{
                 fontSize: '0.95rem',
@@ -214,9 +300,10 @@ const ShopProduct: React.FC = () => {
                 opacity: 0.8,
                 paddingTop: '1rem',
                 borderTop: '1px solid var(--color-line)',
+                whiteSpace: 'pre-line',
               }}
             >
-              {record.description}
+              {cleanDescription(record.description)}
             </div>
           )}
 

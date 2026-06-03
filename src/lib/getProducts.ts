@@ -36,6 +36,13 @@ interface RawProductNode {
   kReleaseYear: { value: string } | null;
   kGenre: { value: string } | null;
   kCondition: { value: string } | null;
+  kSleeve: { value: string } | null;
+  kCatalog: { value: string } | null;
+  kCountry: { value: string } | null;
+  kSpeed: { value: string } | null;
+  kEdition: { value: string } | null;
+  kDiscCount: { value: string } | null;
+  kTracklist: { value: string } | null;
 }
 
 const clean = (s: string | null | undefined): string | null => {
@@ -71,6 +78,26 @@ const yearOnly = (raw: string | null): string | null => {
   return m ? m[0] : null;
 };
 
+// kolektt.tracklist lines look like "1. Title — https://youtu.be/…" (URL optional).
+const parseTracklist = (raw: string | null): { title: string; url: string | null }[] => {
+  if (!raw) return [];
+  return raw
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const noNum = line.replace(/^\d+[.)]\s*/, '');
+      const sep = noNum.lastIndexOf(' — ');
+      if (sep !== -1) {
+        const title = noNum.slice(0, sep).trim();
+        const url = noNum.slice(sep + 3).trim();
+        return { title, url: /^https?:\/\//.test(url) ? url : null };
+      }
+      return { title: noNum, url: null };
+    })
+    .filter((t) => t.title);
+};
+
 function toVinylRecord(node: RawProductNode): VinylRecord {
   // Prefer the curated `record.*` metafields; fall back to the kolektt hub's
   // native shape so hub-synced products display without manual remapping.
@@ -86,9 +113,10 @@ function toVinylRecord(node: RawProductNode): VinylRecord {
     clean(node.genre?.value) ??
     clean(node.kGenre?.value) ??
     null;
+  const mediaConditionRaw = clean(node.kCondition?.value);
+  const sleeveConditionRaw = clean(node.kSleeve?.value);
   const condition =
-    clean(node.condition?.value) ??
-    conditionCode(clean(node.kCondition?.value));
+    clean(node.condition?.value) ?? conditionCode(mediaConditionRaw);
 
   return {
     id: node.id,
@@ -108,6 +136,14 @@ function toVinylRecord(node: RawProductNode): VinylRecord {
       clean(node.releaseYear?.value) ?? yearOnly(clean(node.kReleaseYear?.value)),
     genre,
     condition,
+    mediaCondition: mediaConditionRaw,
+    sleeveCondition: sleeveConditionRaw,
+    catalogNumber: clean(node.kCatalog?.value),
+    country: clean(node.kCountry?.value),
+    speed: clean(node.kSpeed?.value),
+    edition: clean(node.kEdition?.value),
+    discCount: clean(node.kDiscCount?.value),
+    tracklist: parseTracklist(clean(node.kTracklist?.value)),
   };
 }
 
