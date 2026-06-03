@@ -47,6 +47,11 @@ const PRODUCT_FIELDS = /* GraphQL */ `
   releaseYear: metafield(namespace: "record", key: "release_year") { value }
   genre: metafield(namespace: "record", key: "genre") { value }
   condition: metafield(namespace: "record", key: "condition") { value }
+  kArtist: metafield(namespace: "kolektt", key: "artist") { value }
+  kLabel: metafield(namespace: "kolektt", key: "label") { value }
+  kReleaseYear: metafield(namespace: "kolektt", key: "release_year") { value }
+  kGenre: metafield(namespace: "kolektt", key: "genre") { value }
+  kCondition: metafield(namespace: "kolektt", key: "media_condition") { value }
 `;
 
 export const PRODUCTS_QUERY = /* GraphQL */ `
