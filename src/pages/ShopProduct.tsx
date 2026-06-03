@@ -250,7 +250,7 @@ const ShopProduct: React.FC = () => {
                     record.mediaCondition && record.sleeveCondition && !isMobile
                       ? '1fr 1fr'
                       : '1fr',
-                  gap: '0.75rem',
+                  gap: '1.25rem 3rem',
                 }}
               >
                 {record.mediaCondition || record.sleeveCondition ? (
@@ -509,32 +509,32 @@ const ConditionCard: React.FC<{ label: string; value: string | null | undefined 
   const descriptor = m ? m[1].trim() : value;
   const grade = m ? m[2].trim() : null;
   return (
-    <div
-      style={{
-        border: '1px solid var(--color-line)',
-        padding: '1rem 1.1rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.35rem',
-      }}
-    >
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
       <span
         style={{
           fontSize: '0.7rem',
           letterSpacing: '0.12em',
           textTransform: 'uppercase',
-          opacity: 0.5,
+          opacity: 0.45,
         }}
       >
         {label}
       </span>
       <span style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
         {grade && (
-          <span style={{ fontSize: '1.5rem', fontWeight: 600, letterSpacing: '-0.01em' }}>
+          <span
+            style={{
+              fontSize: '2rem',
+              fontWeight: 600,
+              lineHeight: 1,
+              letterSpacing: '-0.02em',
+              color: 'var(--color-accent)',
+            }}
+          >
             {grade}
           </span>
         )}
-        <span style={{ fontSize: '0.85rem', opacity: 0.65 }}>
+        <span style={{ fontSize: '0.85rem', opacity: 0.6 }}>
           {grade ? descriptor : value}
         </span>
       </span>
