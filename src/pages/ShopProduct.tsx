@@ -520,15 +520,21 @@ const ConditionCard: React.FC<{ label: string; value: string | null | undefined 
       >
         {label}
       </span>
-      <span style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         {grade && (
           <span
             style={{
-              fontSize: '2rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '0.25rem 0.6rem',
+              fontSize: '0.8rem',
               fontWeight: 600,
               lineHeight: 1,
-              letterSpacing: '-0.02em',
-              color: 'var(--color-accent)',
+              letterSpacing: '0.01em',
+              color: 'var(--color-bg)',
+              backgroundColor: 'var(--color-accent)',
+              borderRadius: '999px',
+              whiteSpace: 'nowrap',
             }}
           >
             {grade}
