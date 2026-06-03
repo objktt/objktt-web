@@ -21,6 +21,22 @@ const cleanDescription = (desc: string | null | undefined): string => {
   return (idx === -1 ? desc : desc.slice(0, idx)).trim();
 };
 
+// Build an embeddable (autoplaying) YouTube URL from a watch/short link.
+const youtubeEmbedUrl = (url: string | null): string | null => {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    let id = '';
+    if (u.hostname.includes('youtu.be')) id = u.pathname.slice(1);
+    else if (u.searchParams.get('v')) id = u.searchParams.get('v') ?? '';
+    else if (u.pathname.startsWith('/embed/')) id = u.pathname.slice('/embed/'.length);
+    id = id.split(/[/?&]/)[0];
+    return id ? `https://www.youtube.com/embed/${id}?autoplay=1&rel=0` : null;
+  } catch {
+    return null;
+  }
+};
+
 const ShopProduct: React.FC = () => {
   const { handle } = useParams<{ handle: string }>();
   const { isMobile } = useBreakpoint();
@@ -29,11 +45,13 @@ const ShopProduct: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const { addItem, buyNow, loading: cartLoading, error: cartError } = useCart();
   const [pendingAction, setPendingAction] = useState<'add' | 'buy' | null>(null);
+  const [openTrack, setOpenTrack] = useState<number | null>(null);
 
   useEffect(() => {
     if (!handle) return;
     let cancelled = false;
     setLoading(true);
+    setOpenTrack(null);
     getRecordByHandle(handle)
       .then((data) => {
         if (!cancelled) {
@@ -248,45 +266,77 @@ const ShopProduct: React.FC = () => {
               >
                 Tracklist
               </div>
-              <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                {record.tracklist.map((t, i) => (
-                  <li
-                    key={i}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'baseline',
-                      gap: '0.65rem',
-                      fontSize: '0.9rem',
-                    }}
-                  >
-                    <span style={{ opacity: 0.4, minWidth: '1.4rem', fontVariantNumeric: 'tabular-nums' }}>
-                      {i + 1}
-                    </span>
-                    <span style={{ flex: 1 }}>{t.title}</span>
-                    {t.url && (
-                      <a
-                        href={t.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={`Preview ${t.title}`}
+              <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column' }}>
+                {record.tracklist.map((t, i) => {
+                  const embed = youtubeEmbedUrl(t.url);
+                  const isOpen = openTrack === i;
+                  return (
+                    <li key={i} style={{ borderBottom: '1px solid var(--color-line)' }}>
+                      <div
+                        role={embed ? 'button' : undefined}
+                        tabIndex={embed ? 0 : undefined}
+                        aria-expanded={embed ? isOpen : undefined}
+                        aria-label={embed ? `Preview ${t.title}` : undefined}
+                        onClick={() => embed && setOpenTrack(isOpen ? null : i)}
+                        onKeyDown={(e) => {
+                          if (embed && (e.key === 'Enter' || e.key === ' ')) {
+                            e.preventDefault();
+                            setOpenTrack(isOpen ? null : i);
+                          }
+                        }}
                         style={{
-                          display: 'inline-flex',
+                          display: 'flex',
                           alignItems: 'center',
-                          gap: '0.3rem',
-                          fontSize: '0.7rem',
-                          letterSpacing: '0.06em',
-                          textTransform: 'uppercase',
-                          opacity: 0.6,
-                          color: 'inherit',
-                          textDecoration: 'none',
-                          whiteSpace: 'nowrap',
+                          gap: '0.65rem',
+                          fontSize: '0.9rem',
+                          padding: '0.55rem 0',
+                          cursor: embed ? 'pointer' : 'default',
                         }}
                       >
-                        <span aria-hidden style={{ fontSize: '0.65rem' }}>▶</span> Preview
-                      </a>
-                    )}
-                  </li>
-                ))}
+                        <span style={{ opacity: 0.4, minWidth: '1.4rem', fontVariantNumeric: 'tabular-nums' }}>
+                          {i + 1}
+                        </span>
+                        <span style={{ flex: 1 }}>{t.title}</span>
+                        {embed && (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              fontSize: '0.7rem',
+                              letterSpacing: '0.06em',
+                              textTransform: 'uppercase',
+                              opacity: isOpen ? 1 : 0.6,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            <span aria-hidden style={{ fontSize: '0.6rem' }}>{isOpen ? '▾' : '▶'}</span>
+                            Preview
+                          </span>
+                        )}
+                      </div>
+                      {isOpen && embed && (
+                        <div
+                          style={{
+                            position: 'relative',
+                            width: '100%',
+                            aspectRatio: '16 / 9',
+                            margin: '0 0 0.75rem',
+                            backgroundColor: 'var(--color-line)',
+                          }}
+                        >
+                          <iframe
+                            src={embed}
+                            title={`Preview ${t.title}`}
+                            allow="autoplay; encrypted-media; picture-in-picture"
+                            allowFullScreen
+                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
+                          />
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
               </ol>
             </div>
           )}
