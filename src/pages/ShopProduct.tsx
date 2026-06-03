@@ -213,39 +213,21 @@ const ShopProduct: React.FC = () => {
             </h1>
           </div>
 
-          {/* Spec rows */}
-          <dl
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'minmax(5rem, auto) 1fr',
-              gap: '0.65rem 1.5rem',
-              fontSize: '0.875rem',
-              margin: 0,
-              paddingTop: '1rem',
-              borderTop: '1px solid var(--color-line)',
-            }}
-          >
-            <SpecRow label="Album" value={record.album} />
-            <SpecRow label="Label" value={record.label} />
-            <SpecRow label="Catalog No." value={record.catalogNumber} />
-            <SpecRow label="Year" value={record.releaseYear} />
-            <SpecRow label="Country" value={record.country} />
-            <SpecRow label="Genre" value={record.genre} />
-            <SpecRow label="Format" value={record.productType} />
-            <SpecRow label="Speed" value={record.speed} />
-            <SpecRow label="Edition" value={record.edition} />
-            {Number(record.discCount) > 1 && (
-              <SpecRow label="Discs" value={record.discCount} />
-            )}
-            {record.mediaCondition || record.sleeveCondition ? (
-              <>
-                <SpecRow label="Media" value={record.mediaCondition} />
-                <SpecRow label="Sleeve" value={record.sleeveCondition} />
-              </>
-            ) : (
-              <SpecRow label="Condition" value={record.condition} />
-            )}
-          </dl>
+          {/* Description */}
+          {cleanDescription(record.description) && (
+            <div
+              style={{
+                fontSize: '0.95rem',
+                lineHeight: 1.6,
+                opacity: 0.8,
+                paddingTop: '1rem',
+                borderTop: '1px solid var(--color-line)',
+                whiteSpace: 'pre-line',
+              }}
+            >
+              {cleanDescription(record.description)}
+            </div>
+          )}
 
           {/* Tracklist */}
           {record.tracklist && record.tracklist.length > 0 && (
@@ -341,22 +323,6 @@ const ShopProduct: React.FC = () => {
             </div>
           )}
 
-          {/* Description */}
-          {cleanDescription(record.description) && (
-            <div
-              style={{
-                fontSize: '0.95rem',
-                lineHeight: 1.6,
-                opacity: 0.8,
-                paddingTop: '1rem',
-                borderTop: '1px solid var(--color-line)',
-                whiteSpace: 'pre-line',
-              }}
-            >
-              {cleanDescription(record.description)}
-            </div>
-          )}
-
           {/* Price + CTA */}
           <div
             style={{
@@ -446,6 +412,40 @@ const ShopProduct: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* Spec rows (meta info) */}
+          <dl
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'minmax(5rem, auto) 1fr',
+              gap: '0.65rem 1.5rem',
+              fontSize: '0.875rem',
+              margin: 0,
+              paddingTop: '1rem',
+              borderTop: '1px solid var(--color-line)',
+            }}
+          >
+            <SpecRow label="Album" value={record.album} />
+            <SpecRow label="Label" value={record.label} />
+            <SpecRow label="Catalog No." value={record.catalogNumber} />
+            <SpecRow label="Year" value={record.releaseYear} />
+            <SpecRow label="Country" value={record.country} />
+            <SpecRow label="Genre" value={record.genre} />
+            <SpecRow label="Format" value={record.productType} />
+            <SpecRow label="Speed" value={record.speed} />
+            <SpecRow label="Edition" value={record.edition} />
+            {Number(record.discCount) > 1 && (
+              <SpecRow label="Discs" value={record.discCount} />
+            )}
+            {record.mediaCondition || record.sleeveCondition ? (
+              <>
+                <SpecRow label="Media" value={record.mediaCondition} />
+                <SpecRow label="Sleeve" value={record.sleeveCondition} />
+              </>
+            ) : (
+              <SpecRow label="Condition" value={record.condition} />
+            )}
+          </dl>
         </div>
       </div>
     </div>
