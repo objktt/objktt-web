@@ -229,6 +229,46 @@ const ShopProduct: React.FC = () => {
             </div>
           )}
 
+          {/* Condition — emphasized */}
+          {(record.mediaCondition || record.sleeveCondition || record.condition) && (
+            <div style={{ paddingTop: '1rem', borderTop: '1px solid var(--color-line)' }}>
+              <div
+                style={{
+                  fontSize: '0.75rem',
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  opacity: 0.5,
+                  marginBottom: '0.85rem',
+                }}
+              >
+                Condition
+              </div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns:
+                    record.mediaCondition && record.sleeveCondition && !isMobile
+                      ? '1fr 1fr'
+                      : '1fr',
+                  gap: '0.75rem',
+                }}
+              >
+                {record.mediaCondition || record.sleeveCondition ? (
+                  <>
+                    {record.mediaCondition && (
+                      <ConditionCard label="Media" value={record.mediaCondition} />
+                    )}
+                    {record.sleeveCondition && (
+                      <ConditionCard label="Sleeve" value={record.sleeveCondition} />
+                    )}
+                  </>
+                ) : (
+                  <ConditionCard label="Condition" value={record.condition} />
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Tracklist */}
           {record.tracklist && record.tracklist.length > 0 && (
             <div
@@ -437,14 +477,6 @@ const ShopProduct: React.FC = () => {
             {Number(record.discCount) > 1 && (
               <SpecRow label="Discs" value={record.discCount} />
             )}
-            {record.mediaCondition || record.sleeveCondition ? (
-              <>
-                <SpecRow label="Media" value={record.mediaCondition} />
-                <SpecRow label="Sleeve" value={record.sleeveCondition} />
-              </>
-            ) : (
-              <SpecRow label="Condition" value={record.condition} />
-            )}
           </dl>
         </div>
       </div>
@@ -466,6 +498,49 @@ const BackLink: React.FC = () => (
     ← Back to Shop
   </Link>
 );
+
+const ConditionCard: React.FC<{ label: string; value: string | null | undefined }> = ({
+  label,
+  value,
+}) => {
+  if (!value) return null;
+  // "Very Good Plus (VG+)" → grade "VG+" + descriptor "Very Good Plus"
+  const m = value.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
+  const descriptor = m ? m[1].trim() : value;
+  const grade = m ? m[2].trim() : null;
+  return (
+    <div
+      style={{
+        border: '1px solid var(--color-line)',
+        padding: '1rem 1.1rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.35rem',
+      }}
+    >
+      <span
+        style={{
+          fontSize: '0.7rem',
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          opacity: 0.5,
+        }}
+      >
+        {label}
+      </span>
+      <span style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+        {grade && (
+          <span style={{ fontSize: '1.5rem', fontWeight: 600, letterSpacing: '-0.01em' }}>
+            {grade}
+          </span>
+        )}
+        <span style={{ fontSize: '0.85rem', opacity: 0.65 }}>
+          {grade ? descriptor : value}
+        </span>
+      </span>
+    </div>
+  );
+};
 
 const SpecRow: React.FC<{ label: string; value: string | null | undefined }> = ({
   label,
