@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/shop/:handle", "destination": "/api/og?handle=:handle" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
