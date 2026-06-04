@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { getRecordByHandle } from '../lib/getProducts';
 import { useCart } from '../contexts/CartContext';
+import { useSeo, type SeoOptions } from '../lib/seo';
 import type { VinylRecord } from '../types/shopify';
 
 const formatKRW = (amount: string) => {
@@ -71,6 +72,58 @@ const ShopProduct: React.FC = () => {
       cancelled = true;
     };
   }, [handle]);
+
+  const seo = useMemo<SeoOptions>(() => {
+    if (!record) return {};
+    const album = record.album || record.title;
+    const fmt = record.productType || 'LP';
+    const year = record.releaseYear ? `, ${record.releaseYear}` : '';
+    const head = [record.artist, album].filter(Boolean).join(' – ');
+    const title = `${head} (${fmt}${year}) | OBJKTT`;
+    const description = (
+      cleanDescription(record.description) ||
+      [record.artist, album, record.label, record.genre, record.releaseYear]
+        .filter(Boolean)
+        .join(' · ')
+    )
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 160);
+    const image = record.featuredImage?.url ?? record.images[0]?.url ?? null;
+    const url = `https://objktt.kr/shop/${record.handle}`;
+    const variant = record.variants[0];
+    const offline = record.salesChannel === 'offline';
+    const available = variant ? variant.availableForSale : false;
+
+    const jsonLd: Record<string, unknown> = {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: album,
+      itemCondition: 'https://schema.org/UsedCondition',
+    };
+    if (record.artist) jsonLd.brand = { '@type': 'Brand', name: record.artist };
+    if (record.images.length) jsonLd.image = record.images.slice(0, 10).map((i) => i.url);
+    if (description) jsonLd.description = description;
+    if (record.genre) jsonLd.category = record.genre;
+    if (variant) {
+      jsonLd.offers = {
+        '@type': 'Offer',
+        url,
+        priceCurrency: variant.price.currencyCode || 'KRW',
+        price: String(Math.round(Number(variant.price.amount)) || 0),
+        availability: offline
+          ? 'https://schema.org/InStoreOnly'
+          : available
+          ? 'https://schema.org/InStock'
+          : 'https://schema.org/OutOfStock',
+        itemCondition: 'https://schema.org/UsedCondition',
+        seller: { '@type': 'Organization', name: 'OBJKTT' },
+      };
+    }
+
+    return { title, description, image, url, type: 'product', jsonLd };
+  }, [record]);
+  useSeo(seo);
 
   const pad = isMobile ? '5rem 1.5rem 4rem' : '7rem 4rem 5rem';
 
