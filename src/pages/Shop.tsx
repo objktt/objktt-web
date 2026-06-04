@@ -1056,15 +1056,8 @@ const RecordCard: React.FC<RecordCardProps> = ({ record, hovered, onHover }) => 
             </div>
           ) : (
             variant && (
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', flexShrink: 0, whiteSpace: 'nowrap' }}>
-                <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>
-                  {formatKRW(variant.price.amount)}
-                </span>
-                {!soldOut && (
-                  <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--color-accent)' }}>
-                    1점 한정
-                  </span>
-                )}
+              <div style={{ fontSize: '0.9rem', fontWeight: 500, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                {formatKRW(variant.price.amount)}
               </div>
             )
           )}
