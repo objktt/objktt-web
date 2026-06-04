@@ -376,6 +376,18 @@ const ShopProduct: React.FC = () => {
               </div>
             ) : (
             <>
+            {!soldOut && (
+              <div
+                style={{
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  letterSpacing: '0.04em',
+                  color: 'var(--color-accent)',
+                }}
+              >
+                1점 한정 · 단 하나뿐인 중고반
+              </div>
+            )}
             {variant && (
               <div
                 style={{
