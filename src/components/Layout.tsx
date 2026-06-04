@@ -6,6 +6,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useCart } from '../contexts/CartContext';
 import CartDrawer from './CartDrawer';
+import EmailSignup from './EmailSignup';
 
 
 interface LayoutProps {
@@ -286,6 +287,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
              justifyContent: 'space-between',
              gap: '1.5rem',
           }}>
+            <div>
+              <div style={{ fontSize: '0.75rem', opacity: 0.5, marginBottom: '0.5rem', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                OBJKTT Drop
+              </div>
+              <div style={{ fontSize: '0.875rem', opacity: 0.6, lineHeight: 1.5, marginBottom: '0.75rem' }}>
+                신상 입고 소식을 가장 먼저 받아보세요.
+              </div>
+              <EmailSignup source="newsletter" buttonLabel="구독" successLabel="구독 완료 ✓ 곧 소식 전할게요." />
+            </div>
             <div>
               <div style={{ fontSize: '0.75rem', opacity: 0.5, marginBottom: '0.5rem' }}>{t.footer.hours.label}</div>
               <div style={{ fontSize: '0.875rem', whiteSpace: 'pre-line', lineHeight: 1.5 }}>

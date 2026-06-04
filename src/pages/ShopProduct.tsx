@@ -5,6 +5,7 @@ import { getRecordByHandle } from '../lib/getProducts';
 import { useCart } from '../contexts/CartContext';
 import { useSeo, type SeoOptions } from '../lib/seo';
 import { FREE_SHIPPING_THRESHOLD, won } from '../lib/shipping';
+import EmailSignup from '../components/EmailSignup';
 import type { VinylRecord } from '../types/shopify';
 
 const formatKRW = (amount: string) => {
@@ -528,6 +529,21 @@ const ShopProduct: React.FC = () => {
             {cartError && (
               <div style={{ fontSize: '0.8rem', color: '#c33', marginTop: '0.5rem' }}>
                 {cartError}
+              </div>
+            )}
+            {soldOut && (
+              <div style={{ marginTop: '0.5rem' }}>
+                <div style={{ fontSize: '0.8rem', opacity: 0.6, marginBottom: '0.5rem' }}>
+                  품절된 음반입니다. 재입고되면 알려드릴까요?
+                </div>
+                <EmailSignup
+                  source="restock"
+                  productHandle={record.handle}
+                  productTitle={record.title}
+                  placeholder="이메일 주소"
+                  buttonLabel="알림 신청"
+                  successLabel="신청 완료 ✓ 재입고 시 알려드릴게요."
+                />
               </div>
             )}
             </>
