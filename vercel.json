@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/shop/:handle", "destination": "/api/og?handle=:handle" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
