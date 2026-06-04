@@ -282,7 +282,7 @@ const ShopProduct: React.FC = () => {
         </div>
 
         {/* Info column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
           {/* Artist + Title */}
           <div>
             {record.artist && (
@@ -490,11 +490,15 @@ const ShopProduct: React.FC = () => {
                 Tracklist
               </div>
               <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column' }}>
-                {record.tracklist.map((t, i) => {
+                {record.tracklist.map((t, i, arr) => {
                   const embed = youtubeEmbedUrl(t.url);
                   const isOpen = openTrack === i;
+                  const isLast = i === arr.length - 1;
                   return (
-                    <li key={i} style={{ borderBottom: '1px solid var(--color-line)' }}>
+                    <li
+                      key={i}
+                      style={{ borderBottom: isLast ? 'none' : '1px solid var(--color-line)' }}
+                    >
                       <div
                         role={embed ? 'button' : undefined}
                         tabIndex={embed ? 0 : undefined}
