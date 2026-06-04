@@ -68,6 +68,7 @@ export interface VinylRecord {
   discCount?: string | null;
   tracklist?: Track[];
   salesChannel?: string | null; // both | online | offline (offline = in-store only)
+  imageSource?: string | null; // "real" = actual photos (hide Discogs disclaimer); else Discogs reference
 }
 
 export interface ShopifyConnection<T> {

@@ -269,16 +269,18 @@ const ShopProduct: React.FC = () => {
             </div>
           )}
 
-          <p
-            style={{
-              fontSize: '0.7rem',
-              opacity: 0.45,
-              lineHeight: 1.5,
-              marginTop: '0.75rem',
-            }}
-          >
-            * 이미지는 Discogs 제공 참고 이미지로, 실제 음반의 상태와 다를 수 있습니다.
-          </p>
+          {record.imageSource !== 'real' && (
+            <p
+              style={{
+                fontSize: '0.7rem',
+                opacity: 0.45,
+                lineHeight: 1.5,
+                marginTop: '0.75rem',
+              }}
+            >
+              * 이미지는 Discogs 제공 참고 이미지로, 실제 음반의 상태와 다를 수 있습니다.
+            </p>
+          )}
         </div>
 
         {/* Info column */}
