@@ -873,6 +873,7 @@ const NEW_ARRIVAL_DAYS = 14;
 const RecordCard: React.FC<RecordCardProps> = ({ record, hovered, onHover }) => {
   const variant = record.variants[0];
   const soldOut = variant ? !variant.availableForSale : false;
+  const isOffline = record.salesChannel === 'offline';
 
   const price = variant ? Number(variant.price.amount) : NaN;
   const compareAt = variant?.compareAtPrice ? Number(variant.compareAtPrice.amount) : NaN;
@@ -954,7 +955,20 @@ const RecordCard: React.FC<RecordCardProps> = ({ record, hovered, onHover }) => 
             gap: '0.35rem',
           }}
         >
-          {soldOut ? (
+          {isOffline ? (
+            <span
+              style={{
+                padding: '0.25rem 0.55rem',
+                fontSize: '0.65rem',
+                fontWeight: 600,
+                letterSpacing: '0.04em',
+                backgroundColor: 'var(--color-text)',
+                color: 'var(--color-bg)',
+              }}
+            >
+              오프라인 전용
+            </span>
+          ) : soldOut ? (
             <span
               style={{
                 padding: '0.25rem 0.55rem',
@@ -1035,10 +1049,16 @@ const RecordCard: React.FC<RecordCardProps> = ({ record, hovered, onHover }) => 
             gap: '0.5rem',
           }}
         >
-          {variant && (
-            <div style={{ fontSize: '0.9rem', fontWeight: 500, flexShrink: 0, whiteSpace: 'nowrap' }}>
-              {formatKRW(variant.price.amount)}
+          {isOffline ? (
+            <div style={{ fontSize: '0.8rem', fontWeight: 500, opacity: 0.6, flexShrink: 0, whiteSpace: 'nowrap' }}>
+              오프라인 전용
             </div>
+          ) : (
+            variant && (
+              <div style={{ fontSize: '0.9rem', fontWeight: 500, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                {formatKRW(variant.price.amount)}
+              </div>
+            )
           )}
           <div
             style={{

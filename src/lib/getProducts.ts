@@ -44,6 +44,7 @@ interface RawProductNode {
   kEdition: { value: string } | null;
   kDiscCount: { value: string } | null;
   kTracklist: { value: string } | null;
+  kSalesChannel: { value: string } | null;
 }
 
 const clean = (s: string | null | undefined): string | null => {
@@ -146,6 +147,7 @@ function toVinylRecord(node: RawProductNode): VinylRecord {
     edition: clean(node.kEdition?.value),
     discCount: clean(node.kDiscCount?.value),
     tracklist: parseTracklist(clean(node.kTracklist?.value)),
+    salesChannel: clean(node.kSalesChannel?.value),
   };
 }
 

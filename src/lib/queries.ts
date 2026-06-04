@@ -64,6 +64,7 @@ const PRODUCT_FIELDS = /* GraphQL */ `
   kEdition: metafield(namespace: "kolektt", key: "edition") { value }
   kDiscCount: metafield(namespace: "kolektt", key: "disc_count") { value }
   kTracklist: metafield(namespace: "kolektt", key: "tracklist") { value }
+  kSalesChannel: metafield(namespace: "kolektt", key: "sales_channel") { value }
 `;
 
 export const PRODUCTS_QUERY = /* GraphQL */ `

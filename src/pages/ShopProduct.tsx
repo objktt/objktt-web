@@ -102,6 +102,7 @@ const ShopProduct: React.FC = () => {
 
   const variant = record.variants[0];
   const soldOut = variant ? !variant.availableForSale : false;
+  const isOffline = record.salesChannel === 'offline';
   // Gallery: all product images (featured is normally images[0]); de-dupe by url.
   const gallery = (
     record.images.length
@@ -143,6 +144,24 @@ const ShopProduct: React.FC = () => {
               position: 'relative',
             }}
           >
+            {isOffline && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '0.75rem',
+                  left: '0.75rem',
+                  zIndex: 2,
+                  padding: '0.3rem 0.7rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  letterSpacing: '0.04em',
+                  backgroundColor: 'var(--color-text)',
+                  color: 'var(--color-bg)',
+                }}
+              >
+                오프라인 전용
+              </span>
+            )}
             {current ? (
               <img
                 key={current.url}
@@ -346,6 +365,17 @@ const ShopProduct: React.FC = () => {
               borderTop: '1px solid var(--color-line)',
             }}
           >
+            {isOffline ? (
+              <div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 600, letterSpacing: '-0.01em' }}>
+                  오프라인으로만 구매 가능
+                </div>
+                <div style={{ fontSize: '0.875rem', opacity: 0.6, marginTop: '0.4rem', lineHeight: 1.5 }}>
+                  이 음반은 온라인 판매하지 않습니다. 매장에 방문해 만나보세요.
+                </div>
+              </div>
+            ) : (
+            <>
             {variant && (
               <div
                 style={{
@@ -424,6 +454,8 @@ const ShopProduct: React.FC = () => {
               <div style={{ fontSize: '0.8rem', color: '#c33', marginTop: '0.5rem' }}>
                 {cartError}
               </div>
+            )}
+            </>
             )}
           </div>
 

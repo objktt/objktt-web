@@ -67,6 +67,7 @@ export interface VinylRecord {
   edition?: string | null;
   discCount?: string | null;
   tracklist?: Track[];
+  salesChannel?: string | null; // both | online | offline (offline = in-store only)
 }
 
 export interface ShopifyConnection<T> {
