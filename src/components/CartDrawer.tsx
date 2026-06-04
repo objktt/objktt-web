@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
+import { FREE_SHIPPING_THRESHOLD, won } from '../lib/shipping';
 
 const formatPrice = (amount: string, currency: string) => {
   const n = Number(amount);
@@ -182,6 +183,33 @@ const CartDrawer: React.FC = () => {
                 {formatPrice(cart.cost.subtotalAmount.amount, cart.cost.subtotalAmount.currencyCode)}
               </span>
             </div>
+            {(() => {
+              const sub = Number(cart.cost.subtotalAmount.amount);
+              const remaining = FREE_SHIPPING_THRESHOLD - sub;
+              const pct = Math.max(0, Math.min(100, Math.round((sub / FREE_SHIPPING_THRESHOLD) * 100)));
+              return (
+                <div>
+                  <div style={{ fontSize: '0.75rem', opacity: 0.7, marginBottom: '0.45rem' }}>
+                    {remaining > 0 ? (
+                      <>무료배송까지 <strong>{won(remaining)}</strong> 남았어요</>
+                    ) : (
+                      <>무료배송이 적용됩니다 🎉</>
+                    )}
+                  </div>
+                  <div style={{ height: 4, background: 'var(--color-line)', borderRadius: 999, overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        width: `${pct}%`,
+                        height: '100%',
+                        background: 'var(--color-accent)',
+                        borderRadius: 999,
+                        transition: 'width 0.3s ease',
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
             <button
               type="button"
               onClick={checkout}

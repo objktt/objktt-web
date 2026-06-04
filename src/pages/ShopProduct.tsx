@@ -4,6 +4,7 @@ import { useBreakpoint } from '../hooks/useBreakpoint';
 import { getRecordByHandle } from '../lib/getProducts';
 import { useCart } from '../contexts/CartContext';
 import { useSeo, type SeoOptions } from '../lib/seo';
+import { FREE_SHIPPING_THRESHOLD, won } from '../lib/shipping';
 import type { VinylRecord } from '../types/shopify';
 
 const formatKRW = (amount: string) => {
@@ -452,6 +453,14 @@ const ShopProduct: React.FC = () => {
                 }}
               >
                 {formatKRW(variant.price.amount)}
+              </div>
+            )}
+
+            {variant && (
+              <div style={{ fontSize: '0.8rem', opacity: 0.6 }}>
+                {Number(variant.price.amount) >= FREE_SHIPPING_THRESHOLD
+                  ? '무료배송'
+                  : `${won(FREE_SHIPPING_THRESHOLD)} 이상 구매 시 무료배송`}
               </div>
             )}
 
