@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   addItem as apiAddItem,
   getCart as apiGetCart,
@@ -40,6 +41,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
 
   // Hydrate cart on mount
   useEffect(() => {
@@ -78,7 +80,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       try {
         const next = await apiAddItem(variantId, quantity);
         setCart(next);
-        window.location.href = next.checkoutUrl;
+        setIsOpen(false);
+        navigate('/checkout');
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Failed to start checkout';
         setError(msg);
@@ -87,7 +90,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false);
       }
     },
-    []
+    [navigate]
   );
 
   const updateQty = useCallback(async (lineId: string, quantity: number) => {
@@ -117,10 +120,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const checkout = useCallback(() => {
-    if (cart?.checkoutUrl) {
-      window.location.href = cart.checkoutUrl;
+    if (cart && cart.lines.length > 0) {
+      setIsOpen(false);
+      navigate('/checkout');
     }
-  }, [cart]);
+  }, [cart, navigate]);
 
   const reset = useCallback(() => {
     clearStoredCart();
