@@ -160,6 +160,7 @@ const Home: React.FC = () => {
             {shopProducts.map((p) => {
               const variant = p.variants[0];
               const soldOut = variant ? !variant.availableForSale : false;
+              const isOffline = p.salesChannel === 'offline';
               return (
                 <Link
                   key={p.id}
@@ -208,7 +209,19 @@ const Home: React.FC = () => {
                         opacity: 0.4,
                       }}>No image</div>
                     )}
-                    {soldOut && (
+                    {isOffline ? (
+                      <div style={{
+                        position: 'absolute',
+                        top: '0.5rem',
+                        left: '0.5rem',
+                        padding: '0.25rem 0.55rem',
+                        fontSize: '0.65rem',
+                        fontWeight: 600,
+                        letterSpacing: '0.04em',
+                        backgroundColor: 'var(--color-text)',
+                        color: 'var(--color-bg)',
+                      }}>오프라인 전용</div>
+                    ) : soldOut && (
                       <div style={{
                         position: 'absolute',
                         top: '0.5rem',
@@ -230,12 +243,18 @@ const Home: React.FC = () => {
                       </div>
                     )}
                     <div style={{ fontSize: '0.95rem', fontWeight: 500, lineHeight: 1.3 }}>
-                      {p.title}
+                      {p.album || p.title}
                     </div>
-                    {variant && (
-                      <div style={{ fontSize: '0.85rem', fontWeight: 500, marginTop: '0.35rem' }}>
-                        {formatKRW(variant.price.amount)}
+                    {isOffline ? (
+                      <div style={{ fontSize: '0.8rem', fontWeight: 500, opacity: 0.6, marginTop: '0.35rem' }}>
+                        오프라인 전용
                       </div>
+                    ) : (
+                      variant && (
+                        <div style={{ fontSize: '0.85rem', fontWeight: 500, marginTop: '0.35rem' }}>
+                          {formatKRW(variant.price.amount)}
+                        </div>
+                      )
                     )}
                   </div>
                 </Link>
