@@ -7,6 +7,7 @@ import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useCart } from '../contexts/CartContext';
 import CartDrawer from './CartDrawer';
 import EmailSignup from './EmailSignup';
+import { BUSINESS } from '../data/business';
 
 
 interface LayoutProps {
@@ -230,6 +231,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <path d="M104.26,228.34c-54.51,0-98.86,44.35-98.86,98.86,0,54.51,44.35,98.86,98.86,98.86,54.51,0,98.86-44.35,98.86-98.86s-44.35-98.86-98.86-98.86ZM170.28,327.2c0,36.4-29.62,66.02-66.02,66.02-36.4,0-66.02-29.62-66.02-66.02,0-36.41,29.62-66.02,66.02-66.02,36.41,0,66.02,29.62,66.02,66.02Z"/>
               <path d="M388.15,11.79v58.15c-38.1-19.35-85.01-19.35-123.11-.02V11.79s-32.84,0-32.84,0v182.1s32.84,0,32.84,0v-6.89c18.58,9.45,39.62,14.51,61.54,14.51,21.94,0,42.99-5.06,61.58-14.51v6.89h32.84s0-182.1,0-182.1h-32.84ZM265.04,108.64c35.33-27.45,87.78-27.45,123.11,0v39.61c-35.33,27.45-87.79,27.44-123.11,0v-39.6Z"/>
             </svg>
+            <div style={{ fontSize: '0.7rem', opacity: 0.5, lineHeight: 1.7, marginBottom: '0.75rem' }}>
+              {BUSINESS.companyName} ({BUSINESS.brandName})<br />
+              대표 {BUSINESS.representative} · 사업자등록번호 {BUSINESS.registrationNumber}<br />
+              통신판매업신고 {BUSINESS.mailOrderNumber}<br />
+              {BUSINESS.address}<br />
+              {BUSINESS.phone} · {BUSINESS.email}
+            </div>
             <div style={{ fontSize: '0.75rem', opacity: 0.5 }}>
               {t.footer.copyright}
             </div>
@@ -290,12 +298,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 {t.footer.hours.value}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.875rem' }}>
+            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.875rem', flexWrap: 'wrap' }}>
               <NavLink to="/notices" style={{ color: 'inherit', textDecoration: 'none' }}>
                 {t.notices.title}
               </NavLink>
               <NavLink to="/faq" style={{ color: 'inherit', textDecoration: 'none' }}>
                 {t.faq.title}
+              </NavLink>
+              <NavLink to="/terms" style={{ color: 'inherit', textDecoration: 'none' }}>
+                이용약관
+              </NavLink>
+              <NavLink to="/refund" style={{ color: 'inherit', textDecoration: 'none' }}>
+                환불·교환
               </NavLink>
               <NavLink to="/privacy" style={{ color: 'inherit', textDecoration: 'none' }}>
                 {t.privacy.title}

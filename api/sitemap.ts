@@ -22,6 +22,8 @@ const STATIC_PAGES: Array<{ path: string; changefreq: string; priority: string }
   { path: '/notices', changefreq: 'weekly', priority: '0.7' },
   { path: '/faq', changefreq: 'monthly', priority: '0.6' },
   { path: '/contact', changefreq: 'monthly', priority: '0.6' },
+  { path: '/terms', changefreq: 'yearly', priority: '0.3' },
+  { path: '/refund', changefreq: 'yearly', priority: '0.3' },
   { path: '/privacy', changefreq: 'yearly', priority: '0.3' },
 ];
 
