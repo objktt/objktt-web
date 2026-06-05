@@ -5,6 +5,7 @@ import { AnimatedThemeToggler } from './ui/animated-theme-toggler';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext';
 import CartDrawer from './CartDrawer';
 import EmailSignup from './EmailSignup';
 import { BUSINESS } from '../data/business';
@@ -27,6 +28,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { language, toggleLanguage, t } = useLanguage();
   const { isMobile } = useBreakpoint();
   const { cart, open: openCart } = useCart();
+  const { isLoggedIn } = useAuth();
   const cartCount = cart?.totalQuantity ?? 0;
 
   useEffect(() => {
@@ -162,6 +164,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <NavLink to="/events" className={({ isActive }) => isActive ? "active-link" : ""} style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t.nav.events}</NavLink>
                 <NavLink to="/shop" className={({ isActive }) => isActive ? "active-link" : ""} style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t.nav.shop}</NavLink>
 
+                <NavLink to="/account" className={({ isActive }) => isActive ? "active-link" : ""} style={{ marginLeft: '1.5rem', fontSize: '0.875rem', fontWeight: 500 }}>
+                  {isLoggedIn ? '마이페이지' : '로그인'}
+                </NavLink>
+
                 <span style={{ marginLeft: '1.5rem', display: 'inline-flex', alignItems: 'center' }}>
                   <CartButton count={cartCount} onClick={openCart} />
                 </span>
@@ -198,6 +204,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <NavLink to="/music" onClick={() => setMenuOpen(false)} style={{ fontSize: '2rem', fontWeight: 500 }}>{t.nav.music}</NavLink>
           <NavLink to="/events" onClick={() => setMenuOpen(false)} style={{ fontSize: '2rem', fontWeight: 500 }}>{t.nav.events}</NavLink>
           <NavLink to="/shop" onClick={() => setMenuOpen(false)} style={{ fontSize: '2rem', fontWeight: 500 }}>{t.nav.shop}</NavLink>
+          <NavLink to="/account" onClick={() => setMenuOpen(false)} style={{ fontSize: '2rem', fontWeight: 500 }}>{isLoggedIn ? '마이페이지' : '로그인'}</NavLink>
         </div>
       )}
 

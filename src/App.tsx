@@ -15,12 +15,15 @@ import Privacy from './pages/Privacy'
 import Terms from './pages/Terms'
 import Refund from './pages/Refund'
 import Checkout from './pages/Checkout'
+import Account from './pages/Account'
 import { LanguageProvider } from './contexts/LanguageContext'
 import { CartProvider } from './contexts/CartContext'
+import { AuthProvider } from './contexts/AuthContext'
 
 function App() {
   return (
     <LanguageProvider>
+      <AuthProvider>
       <CartProvider>
         <Layout>
           <Routes>
@@ -38,10 +41,12 @@ function App() {
             <Route path="/terms" element={<Terms />} />
             <Route path="/refund" element={<Refund />} />
             <Route path="/checkout" element={<Checkout />} />
+            <Route path="/account" element={<Account />} />
             <Route path="/contact" element={<Contact />} />
           </Routes>
         </Layout>
       </CartProvider>
+      </AuthProvider>
     </LanguageProvider>
   )
 }

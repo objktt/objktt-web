@@ -1,20 +1,68 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import * as PortOne from '@portone/browser-sdk/v2';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useSeo } from '../lib/seo';
 import { FREE_SHIPPING_THRESHOLD, won } from '../lib/shipping';
 import { PORTONE_STORE_ID, PORTONE_CHANNEL_KEY } from '../lib/payment';
 
 type Status = 'idle' | 'paying' | 'processing' | 'done' | 'soldout' | 'error';
 
+const DAUM_SRC = 'https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+let daumLoading: Promise<void> | null = null;
+function loadDaumPostcode(): Promise<void> {
+  if (typeof window === 'undefined') return Promise.reject();
+  if ((window as any).daum?.Postcode) return Promise.resolve();
+  if (daumLoading) return daumLoading;
+  daumLoading = new Promise<void>((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = DAUM_SRC;
+    s.onload = () => resolve();
+    s.onerror = () => { daumLoading = null; reject(new Error('우편번호 서비스를 불러오지 못했습니다.')); };
+    document.head.appendChild(s);
+  });
+  return daumLoading;
+}
+
 const Checkout: React.FC = () => {
   const { isMobile } = useBreakpoint();
   const { cart, reset } = useCart();
+  const { customer, isLoggedIn } = useAuth();
   useSeo({ title: '체크아웃 | OBJKTT' });
 
   const [form, setForm] = useState({ name: '', phone: '', email: '', zip: '', address1: '', address2: '' });
+
+  // Prefill from the logged-in customer (once).
+  const [prefilled, setPrefilled] = useState(false);
+  useEffect(() => {
+    if (prefilled || !customer) return;
+    const a = customer.defaultAddress;
+    setForm((f) => ({
+      name: f.name || [customer.firstName, customer.lastName].filter(Boolean).join(' ') || (a ? [a.firstName, a.lastName].filter(Boolean).join(' ') : ''),
+      phone: f.phone || customer.phone || a?.phone || '',
+      email: f.email || customer.email || '',
+      zip: f.zip || a?.zip || '',
+      address1: f.address1 || a?.address1 || '',
+      address2: f.address2 || a?.address2 || '',
+    }));
+    setPrefilled(true);
+  }, [customer, prefilled]);
+
+  const searchAddress = async () => {
+    try {
+      await loadDaumPostcode();
+      new (window as any).daum.Postcode({
+        oncomplete: (data: { zonecode: string; roadAddress: string; jibunAddress: string }) => {
+          setForm((f) => ({ ...f, zip: data.zonecode, address1: data.roadAddress || data.jibunAddress }));
+        },
+      }).open();
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : '주소 검색을 불러오지 못했습니다.');
+      setStatus('error');
+    }
+  };
   const [status, setStatus] = useState<Status>('idle');
   const [message, setMessage] = useState('');
   const [orderId, setOrderId] = useState('');
@@ -147,6 +195,18 @@ const Checkout: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.1fr 0.9fr', gap: isMobile ? '2.5rem' : '4rem', alignItems: 'start' }}>
         {/* Form */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem', maxWidth: '34rem' }}>
+          {/* Member / guest banner */}
+          <div style={{ fontSize: '0.85rem', opacity: 0.7, padding: '0.75rem 0.85rem', border: '1px solid var(--color-line)' }}>
+            {isLoggedIn ? (
+              <>{[customer?.firstName, customer?.email].filter(Boolean).join(' · ')} 님으로 주문합니다.</>
+            ) : (
+              <>
+                <Link to="/account?redirect=/checkout" style={{ color: 'inherit', textDecoration: 'underline', fontWeight: 600 }}>로그인</Link>
+                {' '}후 주문하거나, 아래 정보를 입력해 <strong>비회원으로 구매</strong>할 수 있습니다.
+              </>
+            )}
+          </div>
+
           <div>
             <span style={label}>받는 분</span>
             <input style={inputStyle} value={form.name} onChange={set('name')} placeholder="이름" />
@@ -160,16 +220,19 @@ const Checkout: React.FC = () => {
             <input style={inputStyle} value={form.email} onChange={set('email')} placeholder="email@example.com" inputMode="email" />
           </div>
           <div>
-            <span style={label}>우편번호</span>
-            <input style={inputStyle} value={form.zip} onChange={set('zip')} placeholder="우편번호" inputMode="numeric" />
-          </div>
-          <div>
             <span style={label}>주소</span>
-            <input style={inputStyle} value={form.address1} onChange={set('address1')} placeholder="도로명/지번 주소" />
-          </div>
-          <div>
-            <span style={label}>상세주소</span>
-            <input style={inputStyle} value={form.address2} onChange={set('address2')} placeholder="동·호수 등" />
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input style={{ ...inputStyle, maxWidth: '8rem' }} value={form.zip} readOnly placeholder="우편번호" />
+              <button
+                type="button"
+                onClick={searchAddress}
+                style={{ padding: '0 1rem', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap', background: 'var(--color-text)', color: 'var(--color-bg)', border: '1px solid var(--color-text)', cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                주소 검색
+              </button>
+            </div>
+            <input style={{ ...inputStyle, marginTop: '0.5rem' }} value={form.address1} readOnly placeholder="도로명 주소 (주소 검색)" />
+            <input style={{ ...inputStyle, marginTop: '0.5rem' }} value={form.address2} onChange={set('address2')} placeholder="상세주소 (동·호수 등)" />
           </div>
         </div>
 
