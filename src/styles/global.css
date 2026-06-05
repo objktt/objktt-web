@@ -22,6 +22,16 @@
   --color-pale: #6B7A8A;
 }
 
+/* Header wordmark is a white PNG — invert to black on the light theme,
+   keep white on dark. */
+.header-logo {
+  filter: invert(1);
+  transition: filter 0.3s ease;
+}
+[data-theme='dark'] .header-logo {
+  filter: none;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
