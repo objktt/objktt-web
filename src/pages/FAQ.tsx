@@ -3,6 +3,7 @@ import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getFAQs } from '../lib/getFAQs';
 import type { FAQ as FAQEntry } from '../types/shopify';
+import { usePageSeo } from '../data/pageSeo';
 
 const FAQ: React.FC = () => {
   const { isMobile } = useBreakpoint();
@@ -41,6 +42,22 @@ const FAQ: React.FC = () => {
     }
     return Array.from(map.entries());
   }, [faqs]);
+
+  // FAQPage structured data (AEO / Google rich results) — built once loaded.
+  const faqJsonLd = useMemo(() => {
+    if (!faqs.length) return null;
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqs.map((f) => ({
+        '@type': 'Question',
+        name: f.question,
+        acceptedAnswer: { '@type': 'Answer', text: f.answer },
+      })),
+    };
+  }, [faqs]);
+
+  usePageSeo('faq', faqJsonLd);
 
   return (
     <div style={{ padding: 0 }}>

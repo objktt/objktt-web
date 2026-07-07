@@ -4,6 +4,7 @@ import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getNotices } from '../lib/getNotices';
 import type { Notice } from '../types/shopify';
+import { usePageSeo } from '../data/pageSeo';
 
 const formatDate = (iso: string, locale: string) => {
   const d = new Date(iso);
@@ -16,6 +17,7 @@ const formatDate = (iso: string, locale: string) => {
 };
 
 const Notices: React.FC = () => {
+  usePageSeo('notices');
   const { isMobile } = useBreakpoint();
   const { language, t } = useLanguage();
   const [notices, setNotices] = useState<Notice[]>([]);

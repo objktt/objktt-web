@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useBreakpoint } from '../hooks/useBreakpoint';
+import { usePageSeo } from '../data/pageSeo';
 
 interface Genre {
   name: string;
@@ -28,6 +29,7 @@ const genres: Genre[] = [
 ];
 
 const Music: React.FC = () => {
+  usePageSeo('music');
   const { isMobile } = useBreakpoint();
   const [hoveredGenre, setHoveredGenre] = useState<number | null>(null);
   const capsuleRefs = useRef<(HTMLSpanElement | null)[]>([]);

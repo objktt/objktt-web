@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import Grid from '../components/GridSystem';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
+import { usePageSeo } from '../data/pageSeo';
 
 const Contact: React.FC = () => {
+  usePageSeo('contact');
   const [formData, setFormData] = useState({
     name: '',
     email: '',

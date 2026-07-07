@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { events } from '../data/events';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useBreakpoint } from '../hooks/useBreakpoint';
+import { usePageSeo } from '../data/pageSeo';
 
 type ViewMode = 'thumbnail' | 'list';
 
 const Events: React.FC = () => {
+  usePageSeo('events');
   const [activeItem, setActiveItem] = useState<string | null>(null);
   const [filter, setFilter] = useState('All');
   const [viewMode, setViewMode] = useState<ViewMode>('thumbnail');
