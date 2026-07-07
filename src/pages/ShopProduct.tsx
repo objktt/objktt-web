@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useBreakpoint } from '../hooks/useBreakpoint';
-import { getRecordByHandle } from '../lib/getProducts';
+import { getRecordByHandle, getProductsByCategory } from '../lib/getProducts';
 import { useCart } from '../contexts/CartContext';
 import { useSeo, type SeoOptions } from '../lib/seo';
 import { FREE_SHIPPING_THRESHOLD, won } from '../lib/shipping';
@@ -24,8 +24,62 @@ const cleanDescription = (desc: string | null | undefined): string => {
   return (idx === -1 ? desc : desc.slice(0, idx)).trim();
 };
 
-// Build an embeddable (autoplaying) YouTube URL from a watch/short link.
-const youtubeEmbedUrl = (url: string | null): string | null => {
+// Shopify CDN image resizing — request a thumbnail instead of the full-res file.
+const thumb = (url: string | undefined, w: number): string | undefined => {
+  if (!url) return url;
+  if (!/cdn\.shopify\.com|myshopify\.com/.test(url)) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}width=${w * 2}`;
+};
+
+// Genre metafields can be compound ("Disco, Funk, Reggae") — split into atoms.
+const splitGenres = (g: string | null | undefined): string[] =>
+  (g ?? '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+
+const decadeOf = (yearStr: string | null | undefined): number | null => {
+  const year = parseInt(yearStr ?? '', 10);
+  return Number.isFinite(year) ? Math.floor(year / 10) * 10 : null;
+};
+
+// Pick records related to the current one: same artist ≫ shared genre > same
+// label > same decade. Sold-out records are skipped (nothing to buy), ties go
+// to newest arrivals. Returns [] when nothing genuinely relates — the section
+// simply doesn't render rather than showing random filler.
+const pickRelated = (current: VinylRecord, all: VinylRecord[], max: number): VinylRecord[] => {
+  const curGenres = new Set(splitGenres(current.genre));
+  const curArtist = current.artist?.toLowerCase() ?? null;
+  const curLabel = current.label?.toLowerCase() ?? null;
+  const curDecade = decadeOf(current.releaseYear);
+  return all
+    .filter((r) => {
+      if (r.handle === current.handle) return false;
+      const v = r.variants[0];
+      return !v || v.availableForSale;
+    })
+    .map((r) => {
+      let score = 0;
+      if (curArtist && r.artist?.toLowerCase() === curArtist) score += 5;
+      const shared = splitGenres(r.genre).filter((g) => curGenres.has(g)).length;
+      score += Math.min(shared, 2) * 3;
+      if (curLabel && r.label?.toLowerCase() === curLabel) score += 2;
+      if (curDecade !== null && decadeOf(r.releaseYear) === curDecade) score += 1;
+      return { r, score };
+    })
+    .filter((x) => x.score > 0)
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        (Date.parse(b.r.createdAt ?? '') || 0) - (Date.parse(a.r.createdAt ?? '') || 0)
+    )
+    .slice(0, max)
+    .map((x) => x.r);
+};
+
+// Extract the 11-char video id from a watch/short/embed YouTube link.
+const youtubeId = (url: string | null): string | null => {
   if (!url) return null;
   try {
     const u = new URL(url);
@@ -34,10 +88,72 @@ const youtubeEmbedUrl = (url: string | null): string | null => {
     else if (u.searchParams.get('v')) id = u.searchParams.get('v') ?? '';
     else if (u.pathname.startsWith('/embed/')) id = u.pathname.slice('/embed/'.length);
     id = id.split(/[/?&]/)[0];
-    return id ? `https://www.youtube.com/embed/${id}?autoplay=1&rel=0` : null;
+    return id || null;
   } catch {
     return null;
   }
+};
+
+// Lazy-load the YouTube IFrame Player API once (shared across players).
+let ytApiPromise: Promise<void> | null = null;
+function loadYouTubeApi(): Promise<void> {
+  if (typeof window === 'undefined') return Promise.resolve();
+  const w = window as unknown as { YT?: { Player: unknown }; onYouTubeIframeAPIReady?: () => void };
+  if (w.YT && w.YT.Player) return Promise.resolve();
+  if (ytApiPromise) return ytApiPromise;
+  ytApiPromise = new Promise<void>((resolve) => {
+    const prev = w.onYouTubeIframeAPIReady;
+    w.onYouTubeIframeAPIReady = () => { prev?.(); resolve(); };
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(tag);
+  });
+  return ytApiPromise;
+}
+
+// A single YouTube preview player. Autoplays the given video and calls onEnded
+// when it finishes, so the tracklist can advance to the next track.
+const TrackPlayer: React.FC<{ videoId: string; title: string; onEnded: () => void }> = ({ videoId, title, onEnded }) => {
+  const holder = useRef<HTMLDivElement>(null);
+  const endedRef = useRef(onEnded);
+  endedRef.current = onEnded;
+
+  useEffect(() => {
+    let player: { destroy: () => void } | null = null;
+    let cancelled = false;
+    loadYouTubeApi().then(() => {
+      if (cancelled || !holder.current) return;
+      const YT = (window as unknown as { YT: any }).YT;
+      player = new YT.Player(holder.current, {
+        videoId,
+        playerVars: { autoplay: 1, rel: 0, playsinline: 1 },
+        events: {
+          onStateChange: (e: { data: number }) => {
+            // 0 = ENDED
+            if (e.data === 0) endedRef.current();
+          },
+        },
+      });
+    });
+    return () => {
+      cancelled = true;
+      try { player?.destroy(); } catch { /* ignore */ }
+    };
+  }, [videoId]);
+
+  return (
+    <div
+      style={{
+        position: 'relative',
+        width: '100%',
+        aspectRatio: '16 / 9',
+        margin: '0 0 0.75rem',
+        backgroundColor: 'var(--color-line)',
+      }}
+    >
+      <div ref={holder} title={`Preview ${title}`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
+    </div>
+  );
 };
 
 const ShopProduct: React.FC = () => {
@@ -50,6 +166,7 @@ const ShopProduct: React.FC = () => {
   const [pendingAction, setPendingAction] = useState<'add' | 'buy' | null>(null);
   const [openTrack, setOpenTrack] = useState<number | null>(null);
   const [imgIndex, setImgIndex] = useState(0);
+  const [related, setRelated] = useState<VinylRecord[]>([]);
 
   useEffect(() => {
     if (!handle) return;
@@ -74,6 +191,26 @@ const ShopProduct: React.FC = () => {
       cancelled = true;
     };
   }, [handle]);
+
+  // Related records — the catalog list is session-cached (getProductsByCategory),
+  // so this is usually instant; on a cold direct visit it's one extra request.
+  useEffect(() => {
+    if (!record) {
+      setRelated([]);
+      return;
+    }
+    let cancelled = false;
+    getProductsByCategory('records')
+      .then((all) => {
+        if (!cancelled) setRelated(pickRelated(record, all, 12));
+      })
+      .catch(() => {
+        if (!cancelled) setRelated([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [record]);
 
   const seo = useMemo<SeoOptions>(() => {
     if (!record) return {};
@@ -365,6 +502,18 @@ const ShopProduct: React.FC = () => {
             >
               {record.album || record.title}
             </h1>
+            {[record.genre, record.releaseYear].filter(Boolean).length > 0 && (
+              <div
+                style={{
+                  fontSize: '0.85rem',
+                  letterSpacing: '0.05em',
+                  opacity: 0.6,
+                  marginTop: '0.7rem',
+                }}
+              >
+                {[record.genre, record.releaseYear].filter(Boolean).join(' · ')}
+              </div>
+            )}
           </div>
 
           {/* Description */}
@@ -380,6 +529,40 @@ const ShopProduct: React.FC = () => {
               }}
             >
               {cleanDescription(record.description)}
+            </div>
+          )}
+
+          {/* Staff Pick — curator blurb shown right below the description (곡설명) */}
+          {record.staffComments && record.staffComments.trim() && (
+            <div
+              style={{
+                paddingTop: '1rem',
+                borderTop: '1px solid var(--color-line)',
+              }}
+            >
+              <div style={{ fontSize: '0.7rem', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.5, marginBottom: '0.5rem' }}>
+                Staff Pick
+              </div>
+              <div style={{ fontSize: '0.92rem', lineHeight: 1.6, opacity: 0.85, whiteSpace: 'pre-line' }}>
+                {record.staffComments}
+              </div>
+            </div>
+          )}
+
+          {/* Special notes (특이사항) — shown right below the album description */}
+          {record.notes && record.notes.trim() && (
+            <div
+              style={{
+                paddingTop: '1rem',
+                borderTop: '1px solid var(--color-line)',
+              }}
+            >
+              <div style={{ fontSize: '0.7rem', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.5, marginBottom: '0.5rem' }}>
+                특이사항
+              </div>
+              <div style={{ fontSize: '0.92rem', lineHeight: 1.6, opacity: 0.85, whiteSpace: 'pre-line' }}>
+                {record.notes}
+              </div>
             </div>
           )}
 
@@ -571,22 +754,31 @@ const ShopProduct: React.FC = () => {
               </div>
               <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column' }}>
                 {record.tracklist.map((t, i, arr) => {
-                  const embed = youtubeEmbedUrl(t.url);
+                  const vid = youtubeId(t.url);
                   const isOpen = openTrack === i;
                   const isLast = i === arr.length - 1;
+                  // When this track's preview ends, jump to the next track that
+                  // has a playable preview (auto-advance); close if none remain.
+                  const playNext = () => {
+                    let next: number | null = null;
+                    for (let j = i + 1; j < arr.length; j++) {
+                      if (youtubeId(arr[j].url)) { next = j; break; }
+                    }
+                    setOpenTrack(next);
+                  };
                   return (
                     <li
                       key={i}
                       style={{ borderBottom: isLast ? 'none' : '1px solid var(--color-line)' }}
                     >
                       <div
-                        role={embed ? 'button' : undefined}
-                        tabIndex={embed ? 0 : undefined}
-                        aria-expanded={embed ? isOpen : undefined}
-                        aria-label={embed ? `Preview ${t.title}` : undefined}
-                        onClick={() => embed && setOpenTrack(isOpen ? null : i)}
+                        role={vid ? 'button' : undefined}
+                        tabIndex={vid ? 0 : undefined}
+                        aria-expanded={vid ? isOpen : undefined}
+                        aria-label={vid ? `Preview ${t.title}` : undefined}
+                        onClick={() => vid && setOpenTrack(isOpen ? null : i)}
                         onKeyDown={(e) => {
-                          if (embed && (e.key === 'Enter' || e.key === ' ')) {
+                          if (vid && (e.key === 'Enter' || e.key === ' ')) {
                             e.preventDefault();
                             setOpenTrack(isOpen ? null : i);
                           }
@@ -597,14 +789,14 @@ const ShopProduct: React.FC = () => {
                           gap: '0.65rem',
                           fontSize: '0.9rem',
                           padding: '0.55rem 0',
-                          cursor: embed ? 'pointer' : 'default',
+                          cursor: vid ? 'pointer' : 'default',
                         }}
                       >
                         <span style={{ opacity: 0.4, minWidth: '1.4rem', fontVariantNumeric: 'tabular-nums' }}>
                           {i + 1}
                         </span>
                         <span style={{ flex: 1 }}>{t.title}</span>
-                        {embed && (
+                        {vid && (
                           <span
                             style={{
                               display: 'inline-flex',
@@ -622,24 +814,8 @@ const ShopProduct: React.FC = () => {
                           </span>
                         )}
                       </div>
-                      {isOpen && embed && (
-                        <div
-                          style={{
-                            position: 'relative',
-                            width: '100%',
-                            aspectRatio: '16 / 9',
-                            margin: '0 0 0.75rem',
-                            backgroundColor: 'var(--color-line)',
-                          }}
-                        >
-                          <iframe
-                            src={embed}
-                            title={`Preview ${t.title}`}
-                            allow="autoplay; encrypted-media; picture-in-picture"
-                            allowFullScreen
-                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
-                          />
-                        </div>
+                      {isOpen && vid && (
+                        <TrackPlayer videoId={vid} title={t.title} onEnded={playNext} />
                       )}
                     </li>
                   );
@@ -664,7 +840,6 @@ const ShopProduct: React.FC = () => {
             <SpecRow label="Catalog No." value={record.catalogNumber} />
             <SpecRow label="Year" value={record.releaseYear} />
             <SpecRow label="Country" value={record.country} />
-            <SpecRow label="Genre" value={record.genre} />
             <SpecRow label="Format" value={record.productType} />
             <SpecRow label="Speed" value={record.speed} />
             <SpecRow label="Edition" value={record.edition} />
@@ -674,24 +849,272 @@ const ShopProduct: React.FC = () => {
           </dl>
         </div>
       </div>
+
+      {/* Related records — horizontal carousel */}
+      {related.length > 0 && <RelatedCarousel items={related} isMobile={isMobile} />}
     </div>
   );
 };
 
-const BackLink: React.FC = () => (
-  <Link
-    to="/shop"
+// Horizontally browsable "You may also like" row with compact cards.
+const RelatedCarousel: React.FC<{ items: VinylRecord[]; isMobile: boolean }> = ({
+  items,
+  isMobile,
+}) => {
+  const scroller = useRef<HTMLDivElement>(null);
+  const [atStart, setAtStart] = useState(true);
+  const [atEnd, setAtEnd] = useState(false);
+
+  const update = () => {
+    const el = scroller.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    setAtStart(el.scrollLeft <= 1);
+    setAtEnd(el.scrollLeft >= max - 1);
+  };
+
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    update();
+    el.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    return () => {
+      el.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, [items.length]);
+
+  // One card + gap per arrow press, measured from the live DOM.
+  const move = (dir: 1 | -1) => {
+    const el = scroller.current;
+    if (!el || el.children.length === 0) return;
+    const first = el.children[0] as HTMLElement;
+    const gap = parseFloat(getComputedStyle(el).columnGap || '0') || 0;
+    el.scrollBy({ left: dir * (first.offsetWidth + gap), behavior: 'smooth' });
+  };
+
+  return (
+    <div
+      style={{
+        marginTop: isMobile ? '4rem' : '6rem',
+        paddingTop: '2rem',
+        borderTop: '1px solid var(--color-line)',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '1.25rem',
+        }}
+      >
+        <div
+          style={{
+            fontSize: '0.75rem',
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            opacity: 0.5,
+          }}
+        >
+          You may also like
+        </div>
+        {!isMobile && !(atStart && atEnd) && (
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <ScrollArrow dir="left" onClick={() => move(-1)} disabled={atStart} />
+            <ScrollArrow dir="right" onClick={() => move(1)} disabled={atEnd} />
+          </div>
+        )}
+      </div>
+      <div
+        ref={scroller}
+        className="hide-scrollbar"
+        style={{
+          display: 'flex',
+          gap: isMobile ? '0.9rem' : '1.25rem',
+          overflowX: 'auto',
+          scrollSnapType: 'x mandatory',
+        }}
+      >
+        {items.map((r) => (
+          <RelatedCard key={r.id} record={r} isMobile={isMobile} />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const ScrollArrow: React.FC<{ dir: 'left' | 'right'; onClick: () => void; disabled: boolean }> = ({
+  dir,
+  onClick,
+  disabled,
+}) => (
+  <button
+    type="button"
+    aria-label={dir === 'left' ? 'Previous' : 'Next'}
+    onClick={onClick}
+    disabled={disabled}
     style={{
-      fontSize: '0.875rem',
-      opacity: 0.6,
-      textDecoration: 'none',
-      color: 'inherit',
-      letterSpacing: '0.02em',
+      width: '32px',
+      height: '32px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      border: '1px solid var(--color-line)',
+      borderRadius: '999px',
+      background: 'var(--color-bg)',
+      color: 'var(--color-text)',
+      cursor: disabled ? 'default' : 'pointer',
+      opacity: disabled ? 0.35 : 1,
+      transition: 'opacity 0.2s ease',
+      fontFamily: 'inherit',
+      padding: 0,
     }}
   >
-    ← Back to Shop
-  </Link>
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ transform: dir === 'left' ? 'rotate(180deg)' : 'none' }}
+    >
+      <path d="M9 6l6 6-6 6" />
+    </svg>
+  </button>
 );
+
+const RelatedCard: React.FC<{ record: VinylRecord; isMobile: boolean }> = ({
+  record,
+  isMobile,
+}) => {
+  const [hovered, setHovered] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  const variant = record.variants[0];
+  const isOffline = record.salesChannel === 'offline';
+  return (
+    <Link
+      to={`/shop/${record.handle}`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        flex: '0 0 auto',
+        width: isMobile ? '36vw' : '160px',
+        scrollSnapAlign: 'start',
+        display: 'flex',
+        flexDirection: 'column',
+        minWidth: 0,
+        textDecoration: 'none',
+        color: 'inherit',
+      }}
+    >
+      <div
+        style={{
+          width: '100%',
+          aspectRatio: '1 / 1',
+          backgroundColor: 'var(--color-line)',
+          overflow: 'hidden',
+          marginBottom: '0.6rem',
+        }}
+      >
+        {record.featuredImage && !imgError ? (
+          <img
+            src={thumb(record.featuredImage.url, 180)}
+            alt={record.featuredImage.altText ?? record.title}
+            loading="lazy"
+            onError={() => setImgError(true)}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block',
+              transform: hovered ? 'scale(1.03)' : 'scale(1)',
+              transition: 'transform 0.4s ease',
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '0.75rem',
+              opacity: 0.4,
+            }}
+          >
+            No image
+          </div>
+        )}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+        {record.artist && (
+          <div
+            style={{
+              fontSize: '0.7rem',
+              letterSpacing: '0.04em',
+              opacity: 0.55,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {record.artist}
+          </div>
+        )}
+        <div
+          style={{
+            fontSize: '0.85rem',
+            fontWeight: 500,
+            lineHeight: 1.3,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {record.album || record.title}
+        </div>
+        <div style={{ fontSize: '0.8rem', marginTop: '0.25rem', opacity: isOffline ? 0.6 : 1 }}>
+          {isOffline ? '오프라인 전용' : variant ? formatKRW(variant.price.amount) : null}
+        </div>
+      </div>
+    </Link>
+  );
+};
+
+const BackLink: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const goBack = (e: React.MouseEvent) => {
+    e.preventDefault();
+    // If we arrived here from within the app (not a direct/external load), go
+    // back so the browser restores the shop's scroll position and active
+    // filters. `location.key === 'default'` means this was the first entry.
+    if (location.key !== 'default') navigate(-1);
+    else navigate('/shop');
+  };
+  return (
+    <a
+      href="/shop"
+      onClick={goBack}
+      style={{
+        fontSize: '0.875rem',
+        opacity: 0.6,
+        textDecoration: 'none',
+        color: 'inherit',
+        letterSpacing: '0.02em',
+        cursor: 'pointer',
+      }}
+    >
+      ← Back to Shop
+    </a>
+  );
+};
 
 const CarouselArrow: React.FC<{ dir: 'prev' | 'next'; onClick: () => void }> = ({
   dir,
