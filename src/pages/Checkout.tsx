@@ -7,6 +7,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useSeo } from '../lib/seo';
 import { FREE_SHIPPING_THRESHOLD, won } from '../lib/shipping';
 import { PORTONE_STORE_ID, PORTONE_CHANNEL_KEY } from '../lib/payment';
+import { getStoredToken } from '../lib/account';
+import { REWARDS } from '../data/rewards';
 
 type Status = 'idle' | 'paying' | 'processing' | 'done' | 'soldout' | 'error';
 
@@ -25,6 +27,18 @@ function loadDaumPostcode(): Promise<void> {
   });
   return daumLoading;
 }
+
+/**
+ * UTF-8 safe base64. KG이니시스는 merchantData(PortOne customData)에 한글 등
+ * 비ASCII를 허용하지 않으므로, 배송지 등 한글이 포함된 customData를 인코딩해 보낸다.
+ * (서버 /api/_lib/order.ts 가 디코딩한다.)
+ */
+const encodeCustomData = (obj: unknown): string => {
+  const bytes = new TextEncoder().encode(JSON.stringify(obj));
+  let bin = '';
+  bytes.forEach((b) => (bin += String.fromCharCode(b)));
+  return btoa(bin);
+};
 
 const Checkout: React.FC = () => {
   const { isMobile } = useBreakpoint();
@@ -72,12 +86,82 @@ const Checkout: React.FC = () => {
 
   const subtotal = cart ? Number(cart.cost.subtotalAmount.amount) : 0;
   const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 3000;
-  const total = subtotal + shipping;
+
+  // 적립금 사용 (회원 전용). 적립금은 상품 금액에만 적용 → 한도 = min(잔액, 상품합계).
+  const [ptInput, setPtInput] = useState('');
+  const balance = customer?.points ?? 0;
+  const maxUsable = Math.max(0, Math.min(balance, subtotal));
+  const rawPts = Math.max(0, Math.min(Math.floor(Number(ptInput) || 0), maxUsable));
+  const pointsApplied = rawPts >= REWARDS.minUseKrw ? rawPts : 0;
+  const pointsTooSmall = rawPts > 0 && rawPts < REWARDS.minUseKrw;
+  const total = subtotal - pointsApplied + shipping;
+
+  // Send the verified paymentId to the server to create the order. Shared by
+  // both the popup/iframe flow (pay) and the redirect-return flow (effect below).
+  // The server re-derives amount/line items/shipping from the PortOne payment's
+  // customData, so we only need the paymentId here.
+  const confirmPayment = async (paymentId: string) => {
+    setStatus('processing');
+    try {
+      const r = await fetch('/api/checkout/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (r.ok && data.ok) {
+        setOrderId(data.orderName || data.orderId || '');
+        reset();
+        setStatus('done');
+      } else if (data.reason === 'sold_out') {
+        setStatus('soldout');
+        setMessage('죄송합니다 — 결제 중 해당 음반이 판매되었습니다. 결제는 자동 환불됩니다.');
+      } else {
+        setStatus('error');
+        setMessage(data.error || '주문 처리 중 문제가 발생했습니다. 결제 내역은 고객센터로 문의해 주세요.');
+      }
+    } catch (e) {
+      setStatus('error');
+      setMessage(e instanceof Error ? e.message : '주문 확정 중 오류가 발생했습니다. 고객센터로 문의해 주세요.');
+    }
+  };
+
+  // Redirect-return flow: KG이니시스/모바일 결제는 전체 페이지 리다이렉트로
+  // /checkout?paymentId=...&code=...&message=... 로 돌아온다. 이때 requestPayment
+  // 프로미스는 사라지므로, URL 파라미터를 읽어 서버 확정을 직접 호출한다. (이게
+  // 없으면 결제는 됐는데 주문이 생성되지 않는다.)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentId = params.get('paymentId');
+    if (!paymentId) return;
+    const errCode = params.get('code'); // present on failure/cancel
+    // Clean the query string so a refresh doesn't re-trigger.
+    window.history.replaceState({}, '', window.location.pathname);
+    if (errCode) {
+      setStatus('error');
+      setMessage(params.get('message') || '결제가 취소되었거나 실패했습니다.');
+      return;
+    }
+    confirmPayment(paymentId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const orderName = useMemo(() => {
     if (!cart || cart.lines.length === 0) return '';
     const first = cart.lines[0].merchandise.product.title;
-    return cart.lines.length > 1 ? `${first} 외 ${cart.lines.length - 1}건` : first;
+    const raw = cart.lines.length > 1 ? `${first} 외 ${cart.lines.length - 1}건` : first;
+    // NICE페이먼츠 rejects these chars in the order name: % & | $ - + = [ ]
+    // Strip them, collapse whitespace, and cap at 40 bytes (PG limit).
+    const cleaned = raw.replace(/[%&|$+=\[\]\-]/g, ' ').replace(/\s+/g, ' ').trim();
+    let bytes = 0;
+    let out = '';
+    for (const ch of cleaned) {
+      const b = new TextEncoder().encode(ch).length;
+      if (bytes + b > 40) break;
+      bytes += b;
+      out += ch;
+    }
+    return out || '주문';
   }, [cart]);
 
   const valid =
@@ -103,6 +187,29 @@ const Checkout: React.FC = () => {
     );
   }
 
+  // While confirming a redirect-return payment, show progress (the cart may have
+  // been cleared) instead of the empty-cart message.
+  if (status === 'processing') {
+    return (
+      <div style={{ padding: pad }}>
+        <h1 style={{ fontSize: isMobile ? '2rem' : '2.5rem', fontWeight: 600, margin: 0 }}>주문 확정 중…</h1>
+        <p style={{ opacity: 0.6, marginTop: '1rem' }}>결제를 확인하고 주문을 생성하고 있습니다. 잠시만 기다려 주세요.</p>
+      </div>
+    );
+  }
+
+  if ((status === 'error' || status === 'soldout') && (!cart || cart.lines.length === 0)) {
+    return (
+      <div style={{ padding: pad, maxWidth: '40rem' }}>
+        <h1 style={{ fontSize: isMobile ? '2rem' : '2.5rem', fontWeight: 600, margin: 0 }}>주문 처리 안내</h1>
+        <p style={{ opacity: 0.7, lineHeight: 1.7, marginTop: '1rem' }}>{message}</p>
+        <Link to="/shop" style={{ display: 'inline-block', marginTop: '1.5rem', textDecoration: 'underline', color: 'inherit' }}>
+          쇼핑 계속하기 →
+        </Link>
+      </div>
+    );
+  }
+
   if (!cart || cart.lines.length === 0) {
     return (
       <div style={{ padding: pad }}>
@@ -116,12 +223,33 @@ const Checkout: React.FC = () => {
   }
 
   const pay = async () => {
-    if (!valid || status === 'paying' || status === 'processing') return;
+    if (!valid || status === 'paying') return;
     setStatus('paying');
     setMessage('');
     const paymentId = `pay-${crypto.randomUUID()}`;
 
     try {
+      // 적립금 사용 시: 서버에서 잔액 검증 + 서명 토큰 발급(차감은 결제 확정 시).
+      let redeemToken: string | null = null;
+      if (pointsApplied > 0) {
+        const pr = await fetch('/api/account/address', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(getStoredToken()?.accessToken ? { 'x-storefront-token': getStoredToken()!.accessToken } : {}),
+          },
+          body: JSON.stringify({ action: 'redeem-prepare', points: pointsApplied, subtotal }),
+        });
+        const pd = await pr.json().catch(() => ({}));
+        if (!pd.ok || !pd.token) {
+          setStatus('error');
+          setMessage(pd.error || '적립금 사용 준비에 실패했습니다. 다시 시도해 주세요.');
+          return;
+        }
+        redeemToken = pd.token;
+      }
+
       const res = await PortOne.requestPayment({
         storeId: PORTONE_STORE_ID,
         channelKey: PORTONE_CHANNEL_KEY,
@@ -130,12 +258,15 @@ const Checkout: React.FC = () => {
         totalAmount: total,
         currency: 'CURRENCY_KRW',
         payMethod: 'CARD',
-        customer: { fullName: form.name.trim(), email: form.email.trim(), phoneNumber: form.phone.trim() },
+        customer: { fullName: form.name.trim(), email: form.email.trim(), phoneNumber: form.phone.replace(/[^\d]/g, '') },
         redirectUrl: `${window.location.origin}/checkout`,
         customData: {
-          cartId: cart.id,
-          lineItems: cart.lines.map((l) => ({ variantId: l.merchandise.id, qty: l.quantity })),
-          shipping: { ...form },
+          d: encodeCustomData({
+            cartId: cart.id,
+            lineItems: cart.lines.map((l) => ({ variantId: l.merchandise.id, qty: l.quantity })),
+            shipping: { ...form },
+            ...(redeemToken ? { r: redeemToken } : {}),
+          }),
         },
       });
 
@@ -145,29 +276,8 @@ const Checkout: React.FC = () => {
         return;
       }
 
-      // Payment authorized → confirm on the server (authoritative).
-      setStatus('processing');
-      const r = await fetch('/api/checkout/complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          paymentId,
-          customer: { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim() },
-          shipping: { zip: form.zip.trim(), address1: form.address1.trim(), address2: form.address2.trim() },
-        }),
-      });
-      const data = await r.json().catch(() => ({}));
-      if (r.ok && data.ok) {
-        setOrderId(data.orderName || data.orderId || '');
-        reset();
-        setStatus('done');
-      } else if (data.reason === 'sold_out') {
-        setStatus('soldout');
-        setMessage('죄송합니다 — 결제 중 해당 음반이 판매되었습니다. 결제는 자동 환불됩니다.');
-      } else {
-        setStatus('error');
-        setMessage(data.error || '주문 처리 중 문제가 발생했습니다. 결제 내역은 고객센터로 문의해 주세요.');
-      }
+      // Payment authorized (popup/iframe flow) → confirm on the server.
+      await confirmPayment(paymentId);
     } catch (e) {
       setStatus('error');
       setMessage(e instanceof Error ? e.message : '결제 처리 중 오류가 발생했습니다.');
@@ -254,15 +364,57 @@ const Checkout: React.FC = () => {
               <span style={{ opacity: 0.6 }}>배송비</span>
               <span>{shipping === 0 ? '무료' : won(shipping)}</span>
             </div>
+
+            {/* 적립금 사용 (회원 전용, 보유 잔액 있을 때) */}
+            {isLoggedIn && balance > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', paddingTop: '0.35rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ opacity: 0.6 }}>적립금 사용</span>
+                  <span style={{ fontSize: '0.78rem', opacity: 0.5 }}>보유 {won(balance)}</span>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    style={{ ...inputStyle, padding: '0.5rem 0.6rem', fontSize: '0.9rem', textAlign: 'right' }}
+                    value={ptInput}
+                    onChange={(e) => setPtInput(e.target.value.replace(/[^0-9]/g, ''))}
+                    placeholder="0"
+                    inputMode="numeric"
+                    disabled={maxUsable <= 0}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPtInput(String(maxUsable))}
+                    disabled={maxUsable <= 0}
+                    style={{ padding: '0 0.9rem', fontSize: '0.8rem', fontWeight: 600, whiteSpace: 'nowrap', background: 'transparent', color: 'var(--color-text)', border: '1px solid var(--color-line)', cursor: maxUsable <= 0 ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
+                  >
+                    전액
+                  </button>
+                </div>
+                {pointsTooSmall && (
+                  <span style={{ fontSize: '0.75rem', color: '#c33' }}>
+                    {REWARDS.minUseKrw.toLocaleString('ko-KR')}원 이상부터 사용할 수 있습니다.
+                  </span>
+                )}
+                {pointsApplied > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-accent, var(--color-text))' }}>
+                    <span style={{ opacity: 0.6 }}>적립금 할인</span><span>− {won(pointsApplied)}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.15rem', fontWeight: 600, marginTop: '0.35rem' }}>
               <span>결제 금액</span><span>{won(total)}</span>
             </div>
+            {pointsApplied > 0 && (
+              <div style={{ fontSize: '0.72rem', opacity: 0.5 }}>적립금 {won(pointsApplied)} 사용 · 사용분은 적립 대상에서 제외됩니다.</div>
+            )}
           </div>
 
           <button
             type="button"
             onClick={pay}
-            disabled={!valid || status === 'paying' || status === 'processing'}
+            disabled={!valid || status === 'paying'}
             style={{
               padding: '1rem 1.5rem',
               fontSize: '1rem',
@@ -271,12 +423,12 @@ const Checkout: React.FC = () => {
               background: 'var(--color-text)',
               color: 'var(--color-bg)',
               border: '1px solid var(--color-text)',
-              cursor: !valid ? 'not-allowed' : status === 'paying' || status === 'processing' ? 'wait' : 'pointer',
+              cursor: !valid ? 'not-allowed' : status === 'paying' ? 'wait' : 'pointer',
               opacity: !valid ? 0.45 : 1,
               fontFamily: 'inherit',
             }}
           >
-            {status === 'paying' ? '결제 진행 중…' : status === 'processing' ? '주문 처리 중…' : `${won(total)} 결제하기`}
+            {status === 'paying' ? '결제 진행 중…' : `${won(total)} 결제하기`}
           </button>
 
           {(status === 'error' || status === 'soldout') && message && (
