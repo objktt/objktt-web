@@ -7,7 +7,7 @@ import { shopifyFetch, isShopifyConfigured } from './shopify';
 import {
   PRODUCTS_QUERY,
   PRODUCT_BY_HANDLE_QUERY,
-  COLLECTION_PRODUCTS_QUERY,
+  COLLECTION_PRODUCTS_LIST_QUERY,
 } from './queries';
 import type { VinylRecord, ShopifyImage, ShopifyVariant } from '../types/shopify';
 import { mockRecords } from '../data/mockRecords';
@@ -22,8 +22,8 @@ interface RawProductNode {
   tags: string[];
   createdAt: string;
   featuredImage: ShopifyImage | null;
-  images: { edges: { node: ShopifyImage }[] };
-  variants: { edges: { node: ShopifyVariant }[] };
+  images?: { edges: { node: ShopifyImage }[] };
+  variants?: { edges: { node: ShopifyVariant }[] };
   artist: { value: string } | null;
   album: { value: string } | null;
   label: { value: string } | null;
@@ -46,6 +46,9 @@ interface RawProductNode {
   kTracklist: { value: string } | null;
   kSalesChannel: { value: string } | null;
   kImageSource: { value: string } | null;
+  kNotes: { value: string } | null;
+  kStaffComments: { value: string } | null;
+  kFeatured: { value: string } | null;
 }
 
 const clean = (s: string | null | undefined): string | null => {
@@ -131,8 +134,8 @@ function toVinylRecord(node: RawProductNode): VinylRecord {
     tags: node.tags,
     createdAt: node.createdAt,
     featuredImage: node.featuredImage,
-    images: node.images.edges.map((e) => e.node),
-    variants: node.variants.edges.map((e) => e.node),
+    images: node.images?.edges.map((e) => e.node) ?? [],
+    variants: node.variants?.edges.map((e) => e.node) ?? [],
     artist,
     album,
     label: clean(node.label?.value) ?? clean(node.kLabel?.value),
@@ -150,6 +153,9 @@ function toVinylRecord(node: RawProductNode): VinylRecord {
     tracklist: parseTracklist(clean(node.kTracklist?.value)),
     salesChannel: clean(node.kSalesChannel?.value),
     imageSource: clean(node.kImageSource?.value),
+    notes: clean(node.kNotes?.value),
+    staffComments: clean(node.kStaffComments?.value),
+    featured: /^(1|true|yes)$/i.test(clean(node.kFeatured?.value) ?? ''),
   };
 }
 
@@ -167,14 +173,75 @@ export async function getProductsByCategory(
     return category === 'records' ? mockRecords : [];
   }
 
-  const data = await shopifyFetch<{
-    collection: {
-      products: { edges: { node: RawProductNode }[] };
-    } | null;
-  }>(COLLECTION_PRODUCTS_QUERY, { handle: category, first: 50 });
+  // Serve from a short-lived session cache so re-visiting /shop (or returning
+  // from a product page) is instant instead of re-fetching the whole catalog.
+  const cached = readListCache(category);
+  if (cached) return cached;
 
-  if (!data.collection) return [];
-  return data.collection.products.edges.map((e) => toVinylRecord(e.node));
+  // Fast path: the edge-cached list endpoint (/api/og?shop=…). The whole catalog
+  // comes back in one request from Vercel's CDN instead of paging Shopify in the
+  // browser. Falls through to the direct Shopify path on any failure.
+  try {
+    const r = await fetch(`/api/og?shop=${category}`);
+    if (r.ok) {
+      const { nodes } = (await r.json()) as { nodes: RawProductNode[] };
+      if (Array.isArray(nodes) && nodes.length > 0) {
+        const records = nodes.map(toVinylRecord);
+        writeListCache(category, records);
+        return records;
+      }
+    }
+  } catch {
+    /* fall back to direct Shopify paging below */
+  }
+
+  const records: VinylRecord[] = [];
+  let after: string | null = null;
+
+  // Fallback: page Shopify directly with the lightweight LIST query.
+  do {
+    const data: {
+      collection: {
+        products: {
+          edges: { node: RawProductNode }[];
+          pageInfo: { hasNextPage: boolean; endCursor: string | null };
+        };
+      } | null;
+    } = await shopifyFetch(COLLECTION_PRODUCTS_LIST_QUERY, {
+      handle: category,
+      first: 250,
+      after,
+    });
+
+    if (!data.collection) break;
+    const { edges, pageInfo } = data.collection.products;
+    records.push(...edges.map((e) => toVinylRecord(e.node)));
+    after = pageInfo.hasNextPage ? pageInfo.endCursor : null;
+  } while (after);
+
+  writeListCache(category, records);
+  return records;
+}
+
+// ── Session cache for the shop list (per category, ~5 min) ──
+const LIST_CACHE_TTL = 2 * 60 * 1000;
+function readListCache(category: ShopCategory): VinylRecord[] | null {
+  try {
+    const raw = sessionStorage.getItem(`objktt-shop-${category}`);
+    if (!raw) return null;
+    const { at, data } = JSON.parse(raw);
+    if (Date.now() - at > LIST_CACHE_TTL) return null;
+    return data as VinylRecord[];
+  } catch {
+    return null;
+  }
+}
+function writeListCache(category: ShopCategory, data: VinylRecord[]): void {
+  try {
+    sessionStorage.setItem(`objktt-shop-${category}`, JSON.stringify({ at: Date.now(), data }));
+  } catch {
+    /* quota / unavailable — skip caching */
+  }
 }
 
 /**
@@ -190,11 +257,23 @@ export async function getRecords(): Promise<VinylRecord[]> {
 export async function getAllProducts(): Promise<VinylRecord[]> {
   if (!isShopifyConfigured) return mockRecords;
 
-  const data = await shopifyFetch<{
-    products: { edges: { node: RawProductNode }[] };
-  }>(PRODUCTS_QUERY, { first: 50 });
+  const records: VinylRecord[] = [];
+  let after: string | null = null;
 
-  return data.products.edges.map((e) => toVinylRecord(e.node));
+  do {
+    const data: {
+      products: {
+        edges: { node: RawProductNode }[];
+        pageInfo: { hasNextPage: boolean; endCursor: string | null };
+      };
+    } = await shopifyFetch(PRODUCTS_QUERY, { first: 250, after });
+
+    const { edges, pageInfo } = data.products;
+    records.push(...edges.map((e) => toVinylRecord(e.node)));
+    after = pageInfo.hasNextPage ? pageInfo.endCursor : null;
+  } while (after);
+
+  return records;
 }
 
 export async function getRecordByHandle(handle: string): Promise<VinylRecord | null> {

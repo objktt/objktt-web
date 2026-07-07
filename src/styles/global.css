@@ -1,6 +1,27 @@
 @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap');
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
 
+@font-face {
+  font-family: 'jsMath-cmti10';
+  src: url('https://cdn.jsdelivr.net/gh/google/fonts@main/apache/jsmathcmti10/jsMath-cmti10.ttf') format('truetype');
+  font-display: swap;
+}
+
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes heroBlob {
+  0%, 100% { border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%; }
+  25% { border-radius: 58% 42% 39% 61% / 62% 39% 61% 38%; }
+  50% { border-radius: 39% 61% 56% 44% / 51% 60% 40% 49%; }
+  75% { border-radius: 61% 39% 44% 56% / 38% 57% 43% 62%; }
+}
+
 :root {
   /* Default to Light Mode */
   --color-bg: #FFFFFF;
@@ -12,6 +33,9 @@
   --grid-gap: 1px; /* Gap becomes the line thickness if we use background color for lines */
   --grid-columns: 12;
   --header-height: 60px;
+
+  --cover-shadow: 0 6px 22px rgba(0, 0, 0, 0.12);
+  --cover-shadow-hover: 0 12px 34px rgba(0, 0, 0, 0.18);
 }
 
 [data-theme='dark'] {
@@ -20,6 +44,9 @@
   --color-line: rgba(255, 255, 255, 0.2);
   --color-accent: #0E2EFF;
   --color-pale: #6B7A8A;
+
+  --cover-shadow: none;
+  --cover-shadow-hover: none;
 }
 
 /* Header wordmark is a white PNG — invert to black on the light theme,
@@ -181,5 +208,19 @@ button {
 @keyframes recordSpinY {
   0% { transform: rotateY(0deg); }
   100% { transform: rotateY(360deg); }
+}
+
+/* 2D spin for the blue-dot text ring */
+@keyframes recordSpin2D {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Theme switch: cross-fade the whole page uniformly via View Transitions, so
+   every container changes color at the same speed (no per-element mismatch). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.3s;
+  animation-timing-function: ease;
 }
 

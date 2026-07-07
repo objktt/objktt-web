@@ -65,7 +65,119 @@ function upsertMetaName(html: string, name: string, value: string): string {
   return html.replace('</head>', `<meta name="${name}" content="${esc(value)}" />\n</head>`);
 }
 
+// ── Live Google reviews (piggybacked here to stay under the 12-function limit).
+// GET /api/og?reviews=1 → { rating, count, reviews[] } from Google Places API
+// (New). Edge-cached 6h. Falls back to 502 so the client keeps its bundled data.
+const PLACES_KEY = process.env.GOOGLE_PLACES_API_KEY;
+const PLACE_ID = process.env.GOOGLE_PLACE_ID || 'ChIJxRrsfeijfDURA1zLswmN4ug';
+
+async function handleReviews(res: VercelResponse) {
+  if (!PLACES_KEY) return res.status(503).json({ error: 'not_configured' });
+  try {
+    const r = await fetch(
+      `https://places.googleapis.com/v1/places/${PLACE_ID}?languageCode=en`,
+      {
+        headers: {
+          'X-Goog-Api-Key': PLACES_KEY,
+          'X-Goog-FieldMask': 'rating,userRatingCount,reviews',
+        },
+      }
+    );
+    const data: any = await r.json();
+    if (!r.ok) {
+      console.error('[reviews] places error:', JSON.stringify(data?.error || data));
+      return res.status(502).json({ error: 'places_failed' });
+    }
+    const reviews = (data.reviews || []).map((rv: any) => ({
+      author: rv.authorAttribution?.displayName ?? 'Google user',
+      photo: rv.authorAttribution?.photoUri ?? null,
+      rating: rv.rating ?? 5,
+      text: rv.originalText?.text ?? rv.text?.text ?? '',
+      time: rv.relativePublishTimeDescription ?? '',
+    }));
+    res.setHeader('Cache-Control', 'public, s-maxage=21600, stale-while-revalidate=86400');
+    return res.status(200).json({
+      rating: data.rating ?? null,
+      count: data.userRatingCount ?? null,
+      reviews,
+    });
+  } catch (e) {
+    console.error('[reviews] fetch failed:', e);
+    return res.status(502).json({ error: 'fetch_failed' });
+  }
+}
+
+// ── Edge-cached shop product list (piggybacked here to stay under 12 functions).
+// GET /api/og?shop=records → { nodes: [...] } of light product fields, paged
+// server-side from Shopify and edge-cached so visitors hit Vercel's CDN instead
+// of Shopify directly. The client maps nodes → VinylRecord (toVinylRecord).
+const SHOP_LIST_QUERY = /* GraphQL */ `
+  query ShopList($handle: String!, $after: String) {
+    collection(handle: $handle) {
+      products(first: 250, after: $after) {
+        edges { node {
+          id handle title vendor productType tags createdAt
+          featuredImage { id url altText width height }
+          variants(first: 1) { edges { node {
+            id title availableForSale
+            price { amount currencyCode }
+            compareAtPrice { amount currencyCode }
+          } } }
+          artist: metafield(namespace: "record", key: "artist") { value }
+          album: metafield(namespace: "record", key: "album") { value }
+          label: metafield(namespace: "record", key: "label") { value }
+          releaseYear: metafield(namespace: "record", key: "release_year") { value }
+          genre: metafield(namespace: "record", key: "genre") { value }
+          kArtist: metafield(namespace: "kolektt", key: "artist") { value }
+          kLabel: metafield(namespace: "kolektt", key: "label") { value }
+          kReleaseYear: metafield(namespace: "kolektt", key: "release_year") { value }
+          kGenre: metafield(namespace: "kolektt", key: "genre") { value }
+          kCondition: metafield(namespace: "kolektt", key: "media_condition") { value }
+          kSleeve: metafield(namespace: "kolektt", key: "sleeve_condition") { value }
+          kCountry: metafield(namespace: "kolektt", key: "country") { value }
+          kSalesChannel: metafield(namespace: "kolektt", key: "sales_channel") { value }
+          kFeatured: metafield(namespace: "kolektt", key: "featured") { value }
+        } }
+        pageInfo { hasNextPage endCursor }
+      }
+    }
+  }
+`;
+
+async function handleShopList(category: string, res: VercelResponse) {
+  if (!DOMAIN || !TOKEN) return res.status(503).json({ error: 'not_configured' });
+  const handle = category === 'goods' ? 'goods' : 'records';
+  try {
+    const nodes: any[] = [];
+    let after: string | null = null;
+    do {
+      const r = await fetch(`https://${DOMAIN}/api/${VERSION}/graphql.json`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Shopify-Storefront-Access-Token': TOKEN },
+        body: JSON.stringify({ query: SHOP_LIST_QUERY, variables: { handle, after } }),
+      });
+      const j: any = await r.json();
+      const products = j?.data?.collection?.products;
+      if (!products) break;
+      for (const e of products.edges) nodes.push(e.node);
+      after = products.pageInfo?.hasNextPage ? products.pageInfo.endCursor : null;
+    } while (after);
+
+    // Edge-cache 2 min, serve stale up to 10 min while revalidating. Kept short
+    // so hub image swaps (which delete the old CDN file → stale URLs 404) heal
+    // within minutes instead of a day. Still warm for ~99% of requests.
+    res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
+    return res.status(200).json({ nodes });
+  } catch (e) {
+    console.error('[shop] list fetch failed:', e);
+    return res.status(502).json({ error: 'fetch_failed' });
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.query.reviews) return handleReviews(res);
+  if (req.query.shop) return handleShopList(String(req.query.shop), res);
+
   const handle = String((req.query.handle as string) || '').trim();
   const host = req.headers.host || 'objktt.kr';
 

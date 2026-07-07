@@ -66,6 +66,9 @@ const PRODUCT_FIELDS = /* GraphQL */ `
   kTracklist: metafield(namespace: "kolektt", key: "tracklist") { value }
   kSalesChannel: metafield(namespace: "kolektt", key: "sales_channel") { value }
   kImageSource: metafield(namespace: "kolektt", key: "image_source") { value }
+  kNotes: metafield(namespace: "kolektt", key: "notes") { value }
+  kStaffComments: metafield(namespace: "kolektt", key: "staff_comments") { value }
+  kFeatured: metafield(namespace: "kolektt", key: "featured") { value }
 `;
 
 export const PRODUCTS_QUERY = /* GraphQL */ `
@@ -94,6 +97,64 @@ export const COLLECTION_PRODUCTS_QUERY = /* GraphQL */ `
         edges {
           node {
             ${PRODUCT_FIELDS}
+          }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+      }
+    }
+  }
+`;
+
+// Lightweight field set for the shop grid/filter — only what the cards and
+// facets read. Skips images(20), tracklist, and rarely-used metafields so the
+// 500+ product list payload is a fraction of the full query (much faster).
+const LIST_PRODUCT_FIELDS = /* GraphQL */ `
+  id
+  handle
+  title
+  vendor
+  productType
+  tags
+  createdAt
+  featuredImage { id url altText width height }
+  variants(first: 1) {
+    edges {
+      node {
+        id
+        title
+        availableForSale
+        price { amount currencyCode }
+        compareAtPrice { amount currencyCode }
+      }
+    }
+  }
+  artist: metafield(namespace: "record", key: "artist") { value }
+  album: metafield(namespace: "record", key: "album") { value }
+  label: metafield(namespace: "record", key: "label") { value }
+  releaseYear: metafield(namespace: "record", key: "release_year") { value }
+  genre: metafield(namespace: "record", key: "genre") { value }
+  kArtist: metafield(namespace: "kolektt", key: "artist") { value }
+  kLabel: metafield(namespace: "kolektt", key: "label") { value }
+  kReleaseYear: metafield(namespace: "kolektt", key: "release_year") { value }
+  kGenre: metafield(namespace: "kolektt", key: "genre") { value }
+  kCondition: metafield(namespace: "kolektt", key: "media_condition") { value }
+  kSleeve: metafield(namespace: "kolektt", key: "sleeve_condition") { value }
+  kCountry: metafield(namespace: "kolektt", key: "country") { value }
+  kSalesChannel: metafield(namespace: "kolektt", key: "sales_channel") { value }
+  kFeatured: metafield(namespace: "kolektt", key: "featured") { value }
+`;
+
+export const COLLECTION_PRODUCTS_LIST_QUERY = /* GraphQL */ `
+  query CollectionProductsList($handle: String!, $first: Int = 250, $after: String) {
+    collection(handle: $handle) {
+      id
+      products(first: $first, after: $after) {
+        edges {
+          node {
+            ${LIST_PRODUCT_FIELDS}
           }
         }
         pageInfo {

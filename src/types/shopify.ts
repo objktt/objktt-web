@@ -69,6 +69,9 @@ export interface VinylRecord {
   tracklist?: Track[];
   salesChannel?: string | null; // both | online | offline (offline = in-store only)
   imageSource?: string | null; // "real" = actual photos (hide Discogs disclaimer); else Discogs reference
+  notes?: string | null; // 특이사항 — special notes shown below the description
+  staffComments?: string | null; // Staff Comments — curator blurb shown below the description
+  featured?: boolean; // kolektt.featured — hub-curated featured flag for the shop carousel
 }
 
 export interface ShopifyConnection<T> {

@@ -1,16 +1,107 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { getProductsByCategory } from '../lib/getProducts';
 import type { ShopCategory } from '../lib/getProducts';
 import { isShopifyConfigured } from '../lib/shopify';
 import type { VinylRecord } from '../types/shopify';
+import { usePageSeo } from '../data/pageSeo';
 
 const formatKRW = (amount: string) => {
   const n = Number(amount);
   if (!Number.isFinite(n)) return amount;
   return `₩${n.toLocaleString('ko-KR')}`;
 };
+
+// Scroll-restore keys. We save the shop's scroll position + a one-shot flag the
+// moment a product card is clicked, then restore it when the shop re-mounts.
+const SCROLL_KEY = 'objktt-shop-scroll';
+const RESTORE_FLAG = 'objktt-shop-restore';
+const markShopReturn = () => {
+  try {
+    sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
+    sessionStorage.setItem(RESTORE_FLAG, '1');
+  } catch { /* ignore */ }
+};
+
+// Shopify CDN image resizing — request a thumbnail instead of the full-res file
+// so the grid loads fast. `w` is the CSS width; we fetch 2× for retina.
+const thumb = (url: string | undefined, w: number): string | undefined => {
+  if (!url) return url;
+  if (!/cdn\.shopify\.com|myshopify\.com/.test(url)) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}width=${w * 2}`;
+};
+
+// Genre metafields can be compound ("Disco, Funk, Reggae"). Split into atomic
+// genres so each can be mapped to a broad group below.
+const splitGenres = (g: string | null | undefined): string[] =>
+  (g ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+// Broad genre groups for the filter. The catalog has ~60 atomic genres, which
+// is unusable as chips — so we collapse them into a handful of 대분류. Each group
+// lists the exact atomic genres it owns; `match` is a keyword fallback so any
+// future/unseen genre still lands somewhere sensible. ORDER matters: it sets
+// both the chip order and the fallback precedence (first matching wins).
+const GENRE_GROUPS: { label: string; genres: string[]; match: RegExp }[] = [
+  { label: 'Disco', genres: ['Disco', 'Euro-Disco', 'Hi NRG', 'Hi-NRG'], match: /disco|hi.?nrg/i },
+  { label: 'Funk / Soul', genres: ['Soul', 'Funk', 'Rhythm & Blues', 'RnB', 'RnB/Swing', 'Funk / Soul', 'Boogie', 'Bayou Funk', 'Gospel', 'Blues', 'Minneapolis Sound'], match: /funk|soul|rhythm & blues|r&b|rnb|gospel|boogie|minneapolis|blues/i },
+  { label: 'Jazz', genres: ['Jazz', 'Fusion', 'Contemporary Jazz', 'Smooth Jazz', 'Free Jazz', 'Post Bop', 'Big Band', 'Swing', 'Soul-Jazz', 'Jazz-Funk', 'Jazz-Rock'], match: /jazz|fusion|\bbop\b|big band|swing/i },
+  { label: 'New Wave / Synth-pop', genres: ['Synth-pop', 'New Wave'], match: /synth-?pop|new wave/i },
+  { label: 'Electronic', genres: ['House', 'Deep House', 'Acid House', 'Garage House', 'Tribal House', 'Hip-House', 'Techno', 'Electro', 'Downtempo', 'Breakbeat', 'Leftfield', 'Freestyle', 'Ambient', 'New Age', 'Experimental', 'Abstract'], match: /house|techno|electro|ambient|downtempo|breakbeat|trance|idm|leftfield|electronic|new age/i },
+  { label: 'Hip Hop', genres: ['Hip Hop', 'Pop Rap', 'Jazzy Hip-Hop', 'Conscious'], match: /hip.?hop|\brap\b/i },
+  { label: 'Rock', genres: ['Pop Rock', 'Rock', 'Hard Rock', 'Alternative Rock', 'Blues Rock', 'Garage Rock', 'Psychedelic Rock', 'Soft Rock', 'Classic Rock', 'Art Rock', 'Country Rock', 'Punk', 'Hardcore', 'AOR'], match: /rock|punk|metal|hardcore|grunge/i },
+  { label: 'Folk', genres: ['Folk', 'Folk Rock', 'Chanson', 'Acoustic'], match: /folk|chanson|acoustic|country/i },
+  { label: 'World / Latin / Brazil', genres: ['Latin', 'Bossanova', 'Bossa Nova', 'MPB', 'Samba', 'Tropicália', 'Tropicalia', 'Forró', 'Forro', 'Bolero', 'Afrobeat', 'Afro-Cuban Jazz', 'Afro-Cuban', 'Raï', 'Rai', 'Highlife', 'Soukous'], match: /latin|bossa|samba|mpb|tropic|forr[oó]|bolero|cumbia|reggae|afro|calypso|brazil|world|cuban|ra[iï]|highlife|soukous|flamenco/i },
+  { label: 'Japan / Asia', genres: ['Kayōkyoku', 'Kayokyoku', 'City Pop', 'J-pop', 'J-Pop', 'Enka', 'Shibuya-kei', 'Mandopop', 'Cantopop', 'K-pop', 'K-Pop'], match: /kay[oō]kyoku|j-?pop|city ?pop|enka|shibuya|mandopop|cantopop|k-?pop/i },
+  { label: 'Pop', genres: ['Power Pop', 'Dance-pop', 'Vocal', 'Ballad', 'Balled'], match: /pop|vocal|ball(a|e)d/i },
+];
+// Vinyl format filter is driven by Shopify productType (LP / 12" / 10" / 7").
+// Curated display order; unknown future values fall to the end.
+const FORMAT_ORDER = ['LP', '12"', '10"', '7"'];
+
+// productType is sometimes polluted by the hub with non-format values (e.g. a
+// genre like "Soul"). Only surface values that actually look like a vinyl format
+// so junk doesn't leak into the Format chips.
+const looksLikeFormat = (t: string): boolean =>
+  /\d\s*("|″|inch)/i.test(t) ||
+  /^(lp|ep|single|maxi[- ]?single|cassette|tape|cd|box ?set|45|33)$/i.test(t.trim());
+
+const OTHER_GROUP = 'Other';
+const GROUP_ORDER = [...GENRE_GROUPS.map((g) => g.label), OTHER_GROUP];
+
+// Exact-match lookup (lowercased) built once for speed.
+const EXACT_GROUP = new Map<string, string>();
+for (const g of GENRE_GROUPS) for (const name of g.genres) EXACT_GROUP.set(name.toLowerCase(), g.label);
+
+const groupOfGenre = (atomic: string): string => {
+  const exact = EXACT_GROUP.get(atomic.toLowerCase());
+  if (exact) return exact;
+  for (const g of GENRE_GROUPS) if (g.match.test(atomic)) return g.label;
+  return OTHER_GROUP;
+};
+
+// The distinct broad groups a record belongs to (via its atomic genres).
+// If a record has at least one real group, it is NOT also tagged 'Other' — so a
+// single unmapped/typo genre (e.g. "Balled") doesn't leak it into the Other chip.
+const genreGroupsOf = (g: string | null | undefined): string[] => {
+  const set = new Set<string>();
+  for (const atomic of splitGenres(g)) set.add(groupOfGenre(atomic));
+  if (set.size > 1) set.delete(OTHER_GROUP);
+  return Array.from(set);
+};
+
+// Asian-country records group under "Japan / Asia" FIRST, regardless of their
+// (often Western) genre tag — e.g. a Japanese synth-pop record belongs in
+// Japan / Asia rather than New Wave / Synth-pop.
+const JAPAN_ASIA = 'Japan / Asia';
+const ASIAN_COUNTRY = /japan|korea|china|hong\s*kong|taiwan|thailand|vietnam|singapore|indonesia|malaysia|philippines/i;
+
+const genreGroupsOfRecord = (r: VinylRecord): string[] =>
+  r.country && ASIAN_COUNTRY.test(r.country) ? [JAPAN_ASIA] : genreGroupsOf(r.genre);
 
 const decadeOf = (yearStr: string | null | undefined): string | null => {
   if (!yearStr) return null;
@@ -48,6 +139,7 @@ const priceOf = (p: VinylRecord): number => {
 };
 
 const Shop: React.FC = () => {
+  usePageSeo('shop');
   const { isMobile } = useBreakpoint();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -55,7 +147,7 @@ const Shop: React.FC = () => {
     (searchParams.get('cat') as ShopCategory) === 'goods' ? 'goods' : 'records';
   const activeGenre = searchParams.get('genre');
   const activeDecade = searchParams.get('decade');
-  const activeLabel = searchParams.get('label');
+  const activeFormat = searchParams.get('format');
   const sortKey: SortKey =
     (SORT_OPTIONS.find(o => o.key === searchParams.get('sort'))?.key) ?? 'featured';
 
@@ -64,6 +156,25 @@ const Shop: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
+  // Search lives in local state (not bound directly to the URL) so fast typing
+  // never drops characters; the `q` param is synced separately, debounced.
+  const [query, setQuery] = useState(() => searchParams.get('q') ?? '');
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          const q = query.trim();
+          if (q) next.set('q', q);
+          else next.delete('q');
+          return next;
+        },
+        { replace: true }
+      );
+    }, 200);
+    return () => clearTimeout(id);
+  }, [query, setSearchParams]);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,6 +196,34 @@ const Shop: React.FC = () => {
       cancelled = true;
     };
   }, [category]);
+
+  // Capture the pending scroll-restore (set when a product card was clicked)
+  // ONCE at mount, before anything can change it.
+  const [pendingRestore] = useState(() => {
+    if (sessionStorage.getItem(RESTORE_FLAG) !== '1') return 0;
+    const s = sessionStorage.getItem(SCROLL_KEY);
+    const y = s ? parseInt(s, 10) : 0;
+    return Number.isFinite(y) && y > 0 ? y : 0;
+  });
+
+  // Restore the shop scroll position once the grid has loaded. The page height
+  // grows as cards/images settle, so retry until we actually reach the target
+  // (or the page can't scroll further), then clear the one-shot flag.
+  useEffect(() => {
+    if (loading || pendingRestore <= 0) return;
+    sessionStorage.removeItem(RESTORE_FLAG);
+    let tries = 0;
+    let timer = 0;
+    const attempt = () => {
+      window.scrollTo(0, pendingRestore);
+      tries += 1;
+      const maxY = document.documentElement.scrollHeight - window.innerHeight;
+      const reached = Math.abs(window.scrollY - pendingRestore) < 2 || pendingRestore > maxY;
+      if (!reached && tries < 20) timer = window.setTimeout(attempt, 50);
+    };
+    attempt();
+    return () => window.clearTimeout(timer);
+  }, [loading, pendingRestore]);
 
   // Body scroll lock when modal open
   useEffect(() => {
@@ -108,43 +247,79 @@ const Shop: React.FC = () => {
   };
 
   const switchCategory = (next: ShopCategory) => {
+    setQuery('');
     const params = new URLSearchParams();
     if (next !== 'records') params.set('cat', next);
     setSearchParams(params, { replace: true });
   };
 
   const clearAllFilters = () => {
+    setQuery('');
     const next = new URLSearchParams();
     if (category !== 'records') next.set('cat', category);
     setSearchParams(next, { replace: true });
   };
 
-  const genres = useMemo(() => {
-    const set = new Set<string>();
-    for (const p of products) if (p.genre) set.add(p.genre);
-    return Array.from(set).sort();
-  }, [products]);
-
-  const decades = useMemo(() => {
-    const set = new Set<string>();
+  // Cascading facets (Discogs-style): Format narrows Genre, Format+Genre narrows
+  // Decade. Each option carries a count of matching records.
+  const formatFacets = useMemo(() => {
+    const m = new Map<string, number>();
     for (const p of products) {
-      const d = decadeOf(p.releaseYear);
-      if (d) set.add(d);
+      const t = p.productType?.trim();
+      if (t && looksLikeFormat(t)) m.set(t, (m.get(t) ?? 0) + 1);
     }
-    return Array.from(set).sort();
+    const rank = (f: string) => {
+      const i = FORMAT_ORDER.indexOf(f);
+      return i === -1 ? FORMAT_ORDER.length : i;
+    };
+    return Array.from(m, ([value, count]) => ({ value, count })).sort(
+      (a, b) => rank(a.value) - rank(b.value) || a.value.localeCompare(b.value)
+    );
   }, [products]);
 
-  const labels = useMemo(() => {
-    const set = new Set<string>();
-    for (const p of products) if (p.label) set.add(p.label);
-    return Array.from(set).sort();
-  }, [products]);
+  const afterFormat = useMemo(
+    () => (activeFormat ? products.filter((p) => p.productType?.trim() === activeFormat) : products),
+    [products, activeFormat]
+  );
+
+  const genreFacets = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of afterFormat) for (const g of genreGroupsOfRecord(p)) m.set(g, (m.get(g) ?? 0) + 1);
+    return GROUP_ORDER.filter((g) => m.has(g)).map((value) => ({ value, count: m.get(value)! }));
+  }, [afterFormat]);
+
+  const afterGenre = useMemo(
+    () => (activeGenre ? afterFormat.filter((p) => genreGroupsOfRecord(p).includes(activeGenre)) : afterFormat),
+    [afterFormat, activeGenre]
+  );
+
+  const decadeFacets = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of afterGenre) {
+      const d = decadeOf(p.releaseYear);
+      if (d) m.set(d, (m.get(d) ?? 0) + 1);
+    }
+    return Array.from(m, ([value, count]) => ({ value, count })).sort((a, b) => a.value.localeCompare(b.value));
+  }, [afterGenre]);
+
+  // Plain value lists — used by the mobile filter dialog and the showFilterUI gate.
+  const formats = formatFacets.map((f) => f.value);
+  const genres = genreFacets.map((f) => f.value);
+  const decades = decadeFacets.map((f) => f.value);
 
   const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
     const matched = products.filter((p) => {
-      if (activeGenre && p.genre !== activeGenre) return false;
+      if (activeGenre && !genreGroupsOfRecord(p).includes(activeGenre)) return false;
       if (activeDecade && decadeOf(p.releaseYear) !== activeDecade) return false;
-      if (activeLabel && p.label !== activeLabel) return false;
+      if (activeFormat && p.productType?.trim() !== activeFormat) return false;
+      if (q) {
+        const hay = [p.title, p.artist, p.label, p.genre]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
       return true;
     });
     const sorted = [...matched];
@@ -167,10 +342,30 @@ const Shop: React.FC = () => {
       // 'featured' → keep API order
     }
     return sorted;
-  }, [products, activeGenre, activeDecade, activeLabel, sortKey]);
+  }, [products, activeGenre, activeDecade, activeFormat, query, sortKey]);
 
-  const activeFilterCount = [activeGenre, activeDecade, activeLabel].filter(Boolean).length;
-  const showFilterUI = category === 'records' && (genres.length > 0 || decades.length > 0 || labels.length > 0);
+  const activeFilterCount = [activeGenre, activeDecade, activeFormat].filter(Boolean).length;
+  const showFilterUI = category === 'records' && (genres.length > 0 || decades.length > 0 || formats.length > 0);
+
+  // Featured row, shown on the unfiltered records landing only.
+  // Source of truth = hub's `kolektt.featured` flag. If the hub hasn't curated
+  // anything yet, fall back to newest arrivals so the row is never empty.
+  const featured = useMemo(() => {
+    const withImage = products.filter((p) => p.featuredImage);
+    const byNewest = (a: VinylRecord, b: VinylRecord) =>
+      (Date.parse(b.createdAt ?? '') || 0) - (Date.parse(a.createdAt ?? '') || 0);
+    const curated = withImage.filter((p) => p.featured).sort(byNewest);
+    if (curated.length > 0) return curated.slice(0, 15);
+    return [...withImage].sort(byNewest).slice(0, 15);
+  }, [products]);
+
+  const showFeatured =
+    category === 'records' &&
+    !activeGenre &&
+    !activeDecade &&
+    !activeFormat &&
+    !query.trim() &&
+    featured.length > 0;
 
   return (
     <div style={{ paddingBottom: '6rem' }}>
@@ -231,172 +426,207 @@ const Shop: React.FC = () => {
         ))}
       </div>
 
-      {/* Toolbar: Filter + Sort + count */}
-      {showFilterUI && (
-        <div
-          style={{
-            padding: isMobile ? '0 1.5rem' : '0 4rem',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: isMobile ? '1.5rem' : '2rem',
-            gap: '0.75rem',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={() => setFilterOpen(true)}
+      {/* Featured carousel (newest arrivals) — only on the unfiltered records landing.
+          Bigger, image-forward, no price — distinct from the grid below. */}
+      {!loading && !error && showFeatured && (
+        <FeaturedCarousel items={featured} isMobile={isMobile} />
+      )}
+
+      {/* Content: desktop left sidebar (Discogs-style) + main column */}
+      <div
+        style={
+          isMobile
+            ? undefined
+            : { display: 'flex', gap: '3rem', padding: '0 4rem', alignItems: 'flex-start' }
+        }
+      >
+        {/* Desktop filter sidebar */}
+        {!isMobile && showFilterUI && (
+          <aside
+            style={{
+              width: '210px',
+              flexShrink: 0,
+              position: 'sticky',
+              top: 'calc(var(--header-height) + 1.5rem)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.75rem',
+            }}
+          >
+            {activeFilterCount > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  style={{ fontSize: '0.72rem', opacity: 0.55, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text)', fontFamily: 'inherit', textDecoration: 'underline', textUnderlineOffset: '2px', padding: 0 }}
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
+            {formatFacets.length > 0 && (
+              <FilterList label="Format" items={formatFacets} active={activeFormat} total={products.length} onChange={(v) => updateParam('format', v)} />
+            )}
+            {genreFacets.length > 0 && (
+              <FilterList label="Genre" items={genreFacets} active={activeGenre} total={afterFormat.length} onChange={(v) => updateParam('genre', v)} />
+            )}
+            {decadeFacets.length > 0 && (
+              <FilterList label="Decade" items={decadeFacets} active={activeDecade} total={afterGenre.length} onChange={(v) => updateParam('decade', v)} />
+            )}
+          </aside>
+        )}
+
+        {/* Main column */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Toolbar: Filter button (mobile) + Sort + count */}
+          {showFilterUI && (
+            <div
               style={{
-                display: 'inline-flex',
+                padding: isMobile ? '0 1.5rem' : '0',
+                display: 'flex',
+                justifyContent: 'space-between',
                 alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.6rem 1rem',
-                fontSize: '0.85rem',
-                fontWeight: 500,
-                letterSpacing: '0.02em',
-                border: '1px solid var(--color-line)',
-                background:
-                  activeFilterCount > 0 ? 'var(--color-text)' : 'var(--color-bg)',
-                color: activeFilterCount > 0 ? 'var(--color-bg)' : 'var(--color-text)',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                transition: 'all 0.2s ease',
+                marginBottom: isMobile ? '1.5rem' : '2rem',
+                gap: '0.75rem',
+                flexWrap: 'wrap',
               }}
             >
-              <FilterIcon active={activeFilterCount > 0} />
-              <span>Filter</span>
-              {activeFilterCount > 0 && (
-                <span style={{ opacity: 0.85 }}>({activeFilterCount})</span>
-              )}
-            </button>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <div
+                  style={{
+                    position: 'relative',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    flex: isMobile ? '1 1 100%' : '0 0 auto',
+                  }}
+                >
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    style={{ position: 'absolute', left: '0.7rem', opacity: 0.45, pointerEvents: 'none' }}
+                  >
+                    <circle cx="11" cy="11" r="7" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search records"
+                    aria-label="Search records"
+                    style={{
+                      width: isMobile ? '100%' : '240px',
+                      padding: '0.6rem 0.9rem 0.6rem 2.1rem',
+                      fontSize: '0.85rem',
+                      border: '1px solid var(--color-line)',
+                      background: 'var(--color-bg)',
+                      color: 'var(--color-text)',
+                      fontFamily: 'inherit',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+                {isMobile && (
+                  <button
+                    type="button"
+                    onClick={() => setFilterOpen(true)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: '0.6rem 1rem',
+                      fontSize: '0.85rem',
+                      fontWeight: 500,
+                      letterSpacing: '0.02em',
+                      border: '1px solid var(--color-line)',
+                      background: activeFilterCount > 0 ? 'var(--color-text)' : 'var(--color-bg)',
+                      color: activeFilterCount > 0 ? 'var(--color-bg)' : 'var(--color-text)',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <FilterIcon active={activeFilterCount > 0} />
+                    <span>Filter</span>
+                    {activeFilterCount > 0 && <span style={{ opacity: 0.85 }}>({activeFilterCount})</span>}
+                  </button>
+                )}
+              </div>
 
-            <SortSelect
-              value={sortKey}
-              onChange={(v) => updateParam('sort', v === 'featured' ? null : v)}
-            />
-          </div>
-
-          <div
-            style={{
-              fontSize: '0.75rem',
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              opacity: 0.5,
-            }}
-          >
-            {filtered.length} {filtered.length === 1 ? 'item' : 'items'}
-          </div>
-        </div>
-      )}
-
-      {/* Active filter chips */}
-      {activeFilterCount > 0 && (
-        <div
-          style={{
-            padding: isMobile ? '0 1.5rem 1.5rem' : '0 4rem 1.5rem',
-            display: 'flex',
-            gap: '0.5rem',
-            flexWrap: 'wrap',
-          }}
-        >
-          {activeGenre && (
-            <ActiveChip label={activeGenre} onRemove={() => updateParam('genre', null)} />
+              <SortSelect
+                value={sortKey}
+                onChange={(v) => updateParam('sort', v === 'featured' ? null : v)}
+              />
+            </div>
           )}
-          {activeDecade && (
-            <ActiveChip label={activeDecade} onRemove={() => updateParam('decade', null)} />
+
+          {/* Active filter chips — mobile only (desktop shows active state in the sidebar) */}
+          {isMobile && activeFilterCount > 0 && (
+            <div style={{ padding: '0 1.5rem 1.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {activeGenre && <ActiveChip label={activeGenre} onRemove={() => updateParam('genre', null)} />}
+              {activeDecade && <ActiveChip label={activeDecade} onRemove={() => updateParam('decade', null)} />}
+              {activeFormat && <ActiveChip label={activeFormat} onRemove={() => updateParam('format', null)} />}
+              <button
+                type="button"
+                onClick={clearAllFilters}
+                style={{ fontSize: '0.75rem', letterSpacing: '0.05em', opacity: 0.55, background: 'none', border: 'none', padding: '0.4rem 0.6rem', cursor: 'pointer', color: 'var(--color-text)', fontFamily: 'inherit', textDecoration: 'underline', textUnderlineOffset: '2px' }}
+              >
+                Clear all
+              </button>
+            </div>
           )}
-          {activeLabel && (
-            <ActiveChip label={activeLabel} onRemove={() => updateParam('label', null)} />
+
+          {/* Dev mock badge */}
+          {!isShopifyConfigured && (
+            <div style={{ padding: isMobile ? '0 1.5rem 1.5rem' : '0 0 1.5rem', fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.45 }}>
+              Showing mock data — set token in <code>.env.local</code> to load real products.
+            </div>
           )}
-          <button
-            type="button"
-            onClick={clearAllFilters}
-            style={{
-              fontSize: '0.75rem',
-              letterSpacing: '0.05em',
-              opacity: 0.55,
-              background: 'none',
-              border: 'none',
-              padding: '0.4rem 0.6rem',
-              cursor: 'pointer',
-              color: 'var(--color-text)',
-              fontFamily: 'inherit',
-              textDecoration: 'underline',
-              textUnderlineOffset: '2px',
-            }}
-          >
-            Clear all
-          </button>
-        </div>
-      )}
 
-      {/* Dev mock badge */}
-      {!isShopifyConfigured && (
-        <div
-          style={{
-            padding: isMobile ? '0 1.5rem 1.5rem' : '0 4rem 1.5rem',
-            fontSize: '0.75rem',
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            opacity: 0.45,
-          }}
-        >
-          Showing mock data — set token in <code>.env.local</code> to load real products.
-        </div>
-      )}
+          {/* States */}
+          {loading && (
+            <div style={{ padding: isMobile ? '0 1.5rem' : '0', opacity: 0.5 }}>Loading…</div>
+          )}
+          {error && !loading && (
+            <div style={{ padding: isMobile ? '0 1.5rem' : '0', opacity: 0.7 }}>{error}</div>
+          )}
 
-      {/* States */}
-      {loading && (
-        <div style={{ padding: isMobile ? '0 1.5rem' : '0 4rem', opacity: 0.5 }}>
-          Loading…
-        </div>
-      )}
-      {error && !loading && (
-        <div style={{ padding: isMobile ? '0 1.5rem' : '0 4rem', opacity: 0.7 }}>
-          {error}
-        </div>
-      )}
+          {/* Grid */}
+          {!loading && !error && filtered.length > 0 && (
+            <div
+              style={{
+                padding: isMobile ? '0 1.5rem' : '0',
+                display: 'grid',
+                gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(200px, 1fr))',
+                gap: isMobile ? '1.25rem' : '2rem',
+              }}
+            >
+              {filtered.map((p) => (
+                <RecordCard
+                  key={p.id}
+                  record={p}
+                  hovered={hoveredId === p.id}
+                  onHover={(in_) => setHoveredId(in_ ? p.id : null)}
+                />
+              ))}
+            </div>
+          )}
 
-      {/* Grid */}
-      {!loading && !error && filtered.length > 0 && (
-        <div
-          style={{
-            padding: isMobile ? '0 1.5rem' : '0 4rem',
-            display: 'grid',
-            gridTemplateColumns: isMobile
-              ? 'repeat(2, 1fr)'
-              : 'repeat(auto-fill, minmax(220px, 1fr))',
-            gap: isMobile ? '1.25rem' : '2rem',
-          }}
-        >
-          {filtered.map((p) => (
-            <RecordCard
-              key={p.id}
-              record={p}
-              hovered={hoveredId === p.id}
-              onHover={(in_) => setHoveredId(in_ ? p.id : null)}
-            />
-          ))}
+          {!loading && !error && filtered.length === 0 && (
+            <div style={{ padding: isMobile ? '0 1.5rem' : '0', opacity: 0.5, fontSize: '0.95rem' }}>
+              {category === 'goods'
+                ? 'Goods coming soon.'
+                : activeFilterCount > 0 || query.trim()
+                  ? 'No records match these filters.'
+                  : 'No records available yet.'}
+            </div>
+          )}
         </div>
-      )}
-
-      {!loading && !error && filtered.length === 0 && (
-        <div
-          style={{
-            padding: isMobile ? '0 1.5rem' : '0 4rem',
-            opacity: 0.5,
-            fontSize: '0.95rem',
-          }}
-        >
-          {category === 'goods'
-            ? 'Goods coming soon.'
-            : activeFilterCount > 0
-              ? 'No records match these filters.'
-              : 'No records available yet.'}
-        </div>
-      )}
+      </div>
 
       {/* Filter Dialog */}
       {filterOpen && (
@@ -405,13 +635,13 @@ const Shop: React.FC = () => {
           onClose={() => setFilterOpen(false)}
           genres={genres}
           decades={decades}
-          labels={labels}
+          formats={formats}
           activeGenre={activeGenre}
           activeDecade={activeDecade}
-          activeLabel={activeLabel}
+          activeFormat={activeFormat}
           onSetGenre={(val) => updateParam('genre', val)}
           onSetDecade={(val) => updateParam('decade', val)}
-          onSetLabel={(val) => updateParam('label', val)}
+          onSetFormat={(val) => updateParam('format', val)}
           onClearAll={clearAllFilters}
           resultCount={filtered.length}
         />
@@ -419,6 +649,240 @@ const Shop: React.FC = () => {
     </div>
   );
 };
+
+// Image-forward featured carousel with arrow controls. Larger cards, no price —
+// deliberately distinct from the dense grid below.
+const FeaturedCarousel: React.FC<{ items: VinylRecord[]; isMobile: boolean }> = ({ items, isMobile }) => {
+  const scroller = useRef<HTMLDivElement>(null);
+  const [atStart, setAtStart] = useState(true);
+  const [atEnd, setAtEnd] = useState(false);
+  const [index, setIndex] = useState(0);
+
+  // Width of one card + the flex gap, read from the live DOM so it stays
+  // correct across breakpoints (mobile 72vw vs desktop 340px).
+  const step = () => {
+    const el = scroller.current;
+    if (!el || el.children.length === 0) return 0;
+    const first = el.children[0] as HTMLElement;
+    const gap = parseFloat(getComputedStyle(el).columnGap || '0') || 0;
+    return first.offsetWidth + gap;
+  };
+
+  const update = () => {
+    const el = scroller.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    setAtStart(el.scrollLeft <= 1);
+    setAtEnd(el.scrollLeft >= max - 1);
+    // Map scroll progress across the full range so every album's dot is
+    // reachable — with multiple cards visible the track stops scrolling once
+    // the last card is flush right, which would otherwise leave the trailing
+    // dots permanently inactive.
+    const i = max > 0 ? Math.round((el.scrollLeft / max) * (items.length - 1)) : 0;
+    setIndex(i);
+  };
+
+  // Track scroll position + recompute on resize / content change.
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    update();
+    el.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    return () => {
+      el.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, [items.length]);
+
+  // Advance exactly one card per arrow press.
+  const move = (dir: 1 | -1) => {
+    const el = scroller.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * step(), behavior: 'smooth' });
+  };
+
+  const goTo = (i: number) => {
+    const el = scroller.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    const n = items.length - 1;
+    el.scrollTo({ left: n > 0 ? (i / n) * max : 0, behavior: 'smooth' });
+  };
+
+  return (
+    <div style={{ padding: isMobile ? '0 0 3rem' : '0 0 4rem' }}>
+      {/* Header row: label + arrows */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: isMobile ? '0 1.5rem' : '0 4rem',
+          marginBottom: '1.25rem',
+        }}
+      >
+        <div style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.5 }}>
+          Featured
+        </div>
+        {!isMobile && !(atStart && atEnd) && (
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <CarouselArrow dir="left" onClick={() => move(-1)} disabled={atStart} />
+            <CarouselArrow dir="right" onClick={() => move(1)} disabled={atEnd} />
+          </div>
+        )}
+      </div>
+
+      {/* Track */}
+      <div
+        ref={scroller}
+        className="hide-scrollbar"
+        style={{
+          display: 'flex',
+          gap: isMobile ? '1rem' : '1.5rem',
+          overflowX: 'auto',
+          scrollSnapType: 'x mandatory',
+          padding: isMobile ? '0 1.5rem' : '0 4rem',
+          scrollPaddingLeft: isMobile ? '1.5rem' : '4rem',
+        }}
+      >
+        {items.map((p) => (
+          <FeaturedCard key={p.id} record={p} isMobile={isMobile} />
+        ))}
+      </div>
+
+      {/* Indicators — one dot per card, active dot elongated. */}
+      {items.length > 1 && (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '0.45rem',
+            flexWrap: 'wrap',
+            marginTop: '1.5rem',
+            padding: isMobile ? '0 1.5rem' : '0 4rem',
+          }}
+        >
+          {items.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              aria-label={`Go to item ${i + 1}`}
+              aria-current={i === index}
+              onClick={() => goTo(i)}
+              style={{
+                width: i === index ? '22px' : '7px',
+                height: '7px',
+                borderRadius: '999px',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                background: i === index ? 'var(--color-text)' : 'var(--color-line)',
+                transition: 'width 0.25s ease, background 0.25s ease',
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const FeaturedCard: React.FC<{ record: VinylRecord; isMobile: boolean }> = ({ record, isMobile }) => {
+  const [hovered, setHovered] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  return (
+    <Link
+      to={`/shop/${record.handle}`}
+      onClick={markShopReturn}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        flex: '0 0 auto',
+        width: isMobile ? '72vw' : '340px',
+        scrollSnapAlign: 'start',
+        textDecoration: 'none',
+        color: 'inherit',
+        display: 'block',
+      }}
+    >
+      <div
+        style={{
+          width: '100%',
+          aspectRatio: '1 / 1',
+          overflow: 'hidden',
+          position: 'relative',
+          boxShadow: hovered ? 'var(--cover-shadow-hover)' : 'var(--cover-shadow)',
+          transition: 'box-shadow 0.35s ease',
+          marginBottom: '1rem',
+        }}
+      >
+        {record.featuredImage && !imgError ? (
+          <img
+            src={thumb(record.featuredImage.url, 400)}
+            alt={record.featuredImage.altText ?? record.title}
+            loading="lazy"
+            onError={() => setImgError(true)}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block',
+              transform: hovered ? 'scale(1.04)' : 'scale(1)',
+              transition: 'transform 0.5s ease',
+            }}
+          />
+        ) : (
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', opacity: 0.4 }}>
+            No image
+          </div>
+        )}
+      </div>
+
+      {/* Meta — artist + title only, no price */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+        {record.artist && (
+          <div style={{ fontSize: '0.8rem', letterSpacing: '0.04em', opacity: 0.55, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {record.artist}
+          </div>
+        )}
+        <div style={{ fontSize: '1.05rem', fontWeight: 500, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {record.album || record.title}
+        </div>
+      </div>
+    </Link>
+  );
+};
+
+const CarouselArrow: React.FC<{ dir: 'left' | 'right'; onClick: () => void; disabled?: boolean }> = ({ dir, onClick, disabled = false }) => (
+  <button
+    type="button"
+    aria-label={dir === 'left' ? 'Previous' : 'Next'}
+    onClick={onClick}
+    disabled={disabled}
+    style={{
+      width: '36px',
+      height: '36px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      border: '1px solid var(--color-line)',
+      borderRadius: '999px',
+      background: 'var(--color-bg)',
+      color: 'var(--color-text)',
+      cursor: disabled ? 'default' : 'pointer',
+      opacity: disabled ? 0.35 : 1,
+      transition: 'opacity 0.2s ease',
+      fontFamily: 'inherit',
+      padding: 0,
+    }}
+  >
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: dir === 'left' ? 'rotate(180deg)' : 'none' }}>
+      <path d="M9 6l6 6-6 6" />
+    </svg>
+  </button>
+);
 
 const SortSelect: React.FC<{ value: SortKey; onChange: (v: SortKey) => void }> = ({
   value,
@@ -521,13 +985,13 @@ interface FilterDialogProps {
   onClose: () => void;
   genres: string[];
   decades: string[];
-  labels: string[];
+  formats: string[];
   activeGenre: string | null;
   activeDecade: string | null;
-  activeLabel: string | null;
+  activeFormat: string | null;
   onSetGenre: (val: string | null) => void;
   onSetDecade: (val: string | null) => void;
-  onSetLabel: (val: string | null) => void;
+  onSetFormat: (val: string | null) => void;
   onClearAll: () => void;
   resultCount: number;
 }
@@ -537,13 +1001,13 @@ const FilterDialog: React.FC<FilterDialogProps> = ({
   onClose,
   genres,
   decades,
-  labels,
+  formats,
   activeGenre,
   activeDecade,
-  activeLabel,
+  activeFormat,
   onSetGenre,
   onSetDecade,
-  onSetLabel,
+  onSetFormat,
   onClearAll,
   resultCount,
 }) => {
@@ -556,7 +1020,7 @@ const FilterDialog: React.FC<FilterDialogProps> = ({
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const hasActive = activeGenre !== null || activeDecade !== null || activeLabel !== null;
+  const hasActive = activeGenre !== null || activeDecade !== null || activeFormat !== null;
 
   return (
     <div
@@ -666,21 +1130,21 @@ const FilterDialog: React.FC<FilterDialogProps> = ({
             />
           )}
 
+          {formats.length > 0 && (
+            <FilterSection
+              label="Format"
+              items={formats}
+              active={activeFormat}
+              onChange={onSetFormat}
+            />
+          )}
+
           {decades.length > 0 && (
             <FilterSection
               label="Decade"
               items={decades}
               active={activeDecade}
               onChange={onSetDecade}
-            />
-          )}
-
-          {labels.length > 0 && (
-            <FilterSection
-              label="Label"
-              items={labels}
-              active={activeLabel}
-              onChange={onSetLabel}
             />
           )}
         </div>
@@ -755,6 +1219,84 @@ const FilterDialog: React.FC<FilterDialogProps> = ({
     </div>
   );
 };
+
+// Discogs-style vertical facet list with per-option counts (used in the desktop sidebar).
+interface Facet {
+  value: string;
+  count: number;
+}
+
+const FilterList: React.FC<{
+  label: string;
+  items: Facet[];
+  active: string | null;
+  total: number;
+  onChange: (val: string | null) => void;
+}> = ({ label, items, active, total, onChange }) => (
+  <div>
+    <div
+      style={{
+        fontSize: '0.7rem',
+        letterSpacing: '0.18em',
+        textTransform: 'uppercase',
+        opacity: 0.5,
+        marginBottom: '0.6rem',
+      }}
+    >
+      {label}
+    </div>
+    <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column' }}>
+      <FilterRow label="All" count={total} active={active === null} onClick={() => onChange(null)} />
+      {items.map((it) => (
+        <FilterRow
+          key={it.value}
+          label={it.value}
+          count={it.count}
+          active={active === it.value}
+          onClick={() => onChange(active === it.value ? null : it.value)}
+        />
+      ))}
+    </ul>
+  </div>
+);
+
+const FilterRow: React.FC<{ label: string; count: number; active: boolean; onClick: () => void }> = ({
+  label,
+  count,
+  active,
+  onClick,
+}) => (
+  <li>
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        width: '100%',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'baseline',
+        gap: '0.5rem',
+        padding: '0.32rem 0',
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        textAlign: 'left',
+        color: 'var(--color-text)',
+        fontFamily: 'inherit',
+        fontSize: '0.875rem',
+        fontWeight: active ? 600 : 400,
+        opacity: active ? 1 : 0.6,
+        transition: 'opacity 0.15s ease',
+      }}
+    >
+      <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '0.35rem', minWidth: 0 }}>
+        <span style={{ width: '0.5rem', flexShrink: 0, opacity: 0.8 }}>{active ? '›' : ''}</span>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+      </span>
+      <span style={{ fontSize: '0.72rem', opacity: 0.4, flexShrink: 0 }}>{count}</span>
+    </button>
+  </li>
+);
 
 interface FilterSectionProps {
   label: string;
@@ -874,6 +1416,7 @@ const RecordCard: React.FC<RecordCardProps> = ({ record, hovered, onHover }) => 
   const variant = record.variants[0];
   const soldOut = variant ? !variant.availableForSale : false;
   const isOffline = record.salesChannel === 'offline';
+  const [imgError, setImgError] = useState(false);
 
   const price = variant ? Number(variant.price.amount) : NaN;
   const compareAt = variant?.compareAtPrice ? Number(variant.compareAtPrice.amount) : NaN;
@@ -890,6 +1433,7 @@ const RecordCard: React.FC<RecordCardProps> = ({ record, hovered, onHover }) => 
   return (
     <Link
       to={`/shop/${record.handle}`}
+      onClick={markShopReturn}
       onMouseEnter={() => onHover(true)}
       onMouseLeave={() => onHover(false)}
       style={{
@@ -914,11 +1458,12 @@ const RecordCard: React.FC<RecordCardProps> = ({ record, hovered, onHover }) => 
           marginBottom: '0.75rem',
         }}
       >
-        {record.featuredImage ? (
+        {record.featuredImage && !imgError ? (
           <img
-            src={record.featuredImage.url}
+            src={thumb(record.featuredImage.url, 260)}
             alt={record.featuredImage.altText ?? record.title}
             loading="lazy"
+            onError={() => setImgError(true)}
             style={{
               width: '100%',
               height: '100%',
@@ -984,52 +1529,66 @@ const RecordCard: React.FC<RecordCardProps> = ({ record, hovered, onHover }) => 
               Sold
             </span>
           ) : (
-            <>
-              {isNew && (
-                <span
-                  style={{
-                    padding: '0.25rem 0.55rem',
-                    fontSize: '0.65rem',
-                    fontWeight: 600,
-                    letterSpacing: '0.1em',
-                    textTransform: 'uppercase',
-                    backgroundColor: 'var(--color-accent)',
-                    color: '#fff',
-                  }}
-                >
-                  New
-                </span>
-              )}
-              {onSale && (
-                <span
-                  style={{
-                    padding: '0.25rem 0.55rem',
-                    fontSize: '0.65rem',
-                    fontWeight: 600,
-                    letterSpacing: '0.03em',
-                    backgroundColor: 'var(--color-text)',
-                    color: 'var(--color-bg)',
-                  }}
-                >
-                  -{discountPct}%
-                </span>
-              )}
-            </>
+            isNew && (
+              <span
+                style={{
+                  padding: '0.25rem 0.55rem',
+                  fontSize: '0.65rem',
+                  fontWeight: 600,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  backgroundColor: 'var(--color-accent)',
+                  color: '#fff',
+                }}
+              >
+                New
+              </span>
+            )
           )}
         </div>
+
+        {/* Discount chip (top-right) */}
+        {!isOffline && !soldOut && onSale && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '0.5rem',
+              right: '0.5rem',
+              padding: '0.25rem 0.55rem',
+              fontSize: '0.65rem',
+              fontWeight: 600,
+              letterSpacing: '0.03em',
+              backgroundColor: 'var(--color-text)',
+              color: 'var(--color-bg)',
+            }}
+          >
+            -{discountPct}%
+          </div>
+        )}
       </div>
 
       {/* Meta */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-        {record.artist && (
+        {(record.artist || record.genre) && (
           <div
             style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'baseline',
+              gap: '0.5rem',
               fontSize: '0.75rem',
               letterSpacing: '0.05em',
               opacity: 0.55,
             }}
           >
-            {record.artist}
+            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {record.artist}
+            </span>
+            {record.genre && (
+              <span style={{ flexShrink: 0, whiteSpace: 'nowrap', textAlign: 'right' }}>
+                {record.genre}
+              </span>
+            )}
           </div>
         )}
         <div
