@@ -33,6 +33,18 @@ export interface CustomerOrder {
   total: { amount: string; currencyCode: string };
 }
 
+export interface CustomerAddressEntry {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  zip: string | null;
+  address1: string | null;
+  address2: string | null;
+  city: string | null;
+  isDefault: boolean;
+}
+
 export interface Customer {
   id: string;
   firstName: string | null;
@@ -40,7 +52,9 @@ export interface Customer {
   email: string | null;
   phone: string | null;
   defaultAddress: CustomerAddress | null;
+  addresses: CustomerAddressEntry[];
   orders: CustomerOrder[];
+  points?: number; // 적립금 잔액(원)
 }
 
 export interface UserError {
@@ -119,6 +133,7 @@ export async function register(input: {
   });
   const r = data.customerCreate;
   if (r.customer) return { errors: [] };
+  // 가입 보너스는 로그인 후 첫 적립금 조회(account 'points' 액션) 시 멱등 적립된다.
   return { errors: r.customerUserErrors.length ? r.customerUserErrors : [{ message: '회원가입에 실패했습니다.' }] };
 }
 
@@ -130,7 +145,10 @@ const CUSTOMER_QUERY = /* GraphQL */ `
       lastName
       email
       phone
-      defaultAddress { firstName lastName phone zip address1 address2 city province country }
+      defaultAddress { id firstName lastName phone zip address1 address2 city province country }
+      addresses(first: 20) {
+        edges { node { id firstName lastName phone zip address1 address2 city province country } }
+      }
       orders(first: 20, sortKey: PROCESSED_AT, reverse: true) {
         edges {
           node {
@@ -147,17 +165,46 @@ const CUSTOMER_QUERY = /* GraphQL */ `
   }
 `;
 
+async function fetchPoints(token: string): Promise<number> {
+  try {
+    const r = await fetch('/api/account/address', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', 'x-storefront-token': token },
+      body: JSON.stringify({ action: 'points' }),
+    });
+    if (!r.ok) return 0;
+    const j = (await r.json()) as { balance?: number };
+    return Number(j.balance ?? 0) || 0;
+  } catch {
+    return 0;
+  }
+}
+
 export async function getCustomer(token: string): Promise<Customer | null> {
   const data = await shopifyFetch<{ customer: any | null }>(CUSTOMER_QUERY, { token });
   const c = data.customer;
   if (!c) return null;
+  const points = await fetchPoints(token);
   return {
+    points,
     id: c.id,
     firstName: c.firstName,
     lastName: c.lastName,
     email: c.email,
     phone: c.phone,
     defaultAddress: c.defaultAddress ?? null,
+    addresses: (c.addresses?.edges ?? []).map((e: any) => ({
+      id: e.node.id,
+      firstName: e.node.firstName,
+      lastName: e.node.lastName,
+      phone: e.node.phone,
+      zip: e.node.zip,
+      address1: e.node.address1,
+      address2: e.node.address2,
+      city: e.node.city,
+      isDefault: e.node.id === c.defaultAddress?.id,
+    })),
     orders: (c.orders?.edges ?? []).map((e: any) => ({
       id: e.node.id,
       orderNumber: e.node.orderNumber,
@@ -186,3 +233,66 @@ export async function logout(token: string): Promise<void> {
   }
   clearStoredToken();
 }
+
+/**
+ * Social-login (Google/Naver/Kakao) session — issued by our backend as an
+ * HttpOnly cookie, so it isn't readable from JS; we ask the server who we are.
+ */
+export async function fetchSocialSession(): Promise<Customer | null> {
+  try {
+    const r = await fetch('/api/auth/me', { credentials: 'include' });
+    if (!r.ok) return null;
+    const data = (await r.json()) as { customer: Customer | null };
+    return data.customer ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function socialLogout(): Promise<void> {
+  try {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+  } catch {
+    /* best-effort */
+  }
+}
+
+export interface AddressPayload {
+  firstName?: string;
+  phone?: string;
+  zip?: string;
+  address1?: string;
+  address2?: string;
+}
+
+/**
+ * Address-book operations. Works for both auth modes: the social session cookie
+ * is sent automatically (credentials:include), and email/password users attach
+ * their Storefront token so the server can resolve their customer.
+ */
+async function addressRequest(body: object): Promise<{ ok: boolean; error?: string }> {
+  const token = getStoredToken();
+  try {
+    const r = await fetch('/api/account/address', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'x-storefront-token': token.accessToken } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+    const data = (await r.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+    if (r.ok && data.ok) return { ok: true };
+    return { ok: false, error: data.error || '주소 처리에 실패했습니다.' };
+  } catch {
+    return { ok: false, error: '주소 처리 중 오류가 발생했습니다.' };
+  }
+}
+
+export const addAddress = (address: AddressPayload, setAsDefault = false) =>
+  addressRequest({ action: 'create', address, setAsDefault });
+export const editAddress = (addressId: string, address: AddressPayload, setAsDefault = false) =>
+  addressRequest({ action: 'update', addressId, address, setAsDefault });
+export const removeAddress = (addressId: string) => addressRequest({ action: 'delete', addressId });
+export const makeDefaultAddress = (addressId: string) => addressRequest({ action: 'setDefault', addressId });

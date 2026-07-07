@@ -13,6 +13,8 @@ import {
   login as apiLogin,
   register as apiRegister,
   logout as apiLogout,
+  fetchSocialSession,
+  socialLogout,
   type Customer,
   type UserError,
 } from '../lib/account';
@@ -34,6 +36,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
+    // 1) Social-login session (HttpOnly cookie) takes precedence.
+    const social = await fetchSocialSession();
+    if (social) {
+      setCustomer(social);
+      setLoading(false);
+      return;
+    }
+    // 2) Email/password — Shopify Storefront access token.
     const token = getStoredToken();
     if (!token) {
       setCustomer(null);
@@ -81,6 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = useCallback(async () => {
     const token = getStoredToken();
     if (token) await apiLogout(token.accessToken);
+    await socialLogout();
     setCustomer(null);
   }, []);
 
