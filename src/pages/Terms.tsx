@@ -58,7 +58,7 @@ const Terms: React.FC = () => (
           `사업자등록번호: ${BUSINESS.registrationNumber}`,
           `통신판매업 신고번호: ${BUSINESS.mailOrderNumber}`,
           `주소: ${BUSINESS.address}`,
-          `전화: ${BUSINESS.phone}`,
+          `카카오톡 채널: ${BUSINESS.kakaoChannelUrl}`,
           `이메일: ${BUSINESS.email}`,
         ].join('\n'),
       },

@@ -62,12 +62,41 @@ const LegalPage: React.FC<Props> = ({ title, updated, intro, sections, infoRows,
               borderTop: '1px solid var(--color-line)',
             }}
           >
-            {infoRows.map(([label, value]) => (
-              <React.Fragment key={label}>
-                <dt style={{ opacity: 0.5 }}>{label}</dt>
-                <dd style={{ margin: 0, opacity: 0.9 }}>{value}</dd>
-              </React.Fragment>
-            ))}
+            {infoRows.map(([label, value]) => {
+              const isUrl = /^https?:\/\//.test(value);
+              const isKakao = isUrl && value.includes('pf.kakao.com');
+              return (
+                <React.Fragment key={label}>
+                  <dt style={{ opacity: 0.5 }}>{label}</dt>
+                  <dd style={{ margin: 0, opacity: 0.9 }}>
+                    {isUrl ? (
+                      <a
+                        href={value}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          padding: '0.4rem 0.85rem',
+                          borderRadius: '999px',
+                          fontSize: '0.8125rem',
+                          fontWeight: 600,
+                          textDecoration: 'none',
+                          ...(isKakao
+                            ? { backgroundColor: '#FEE500', color: '#191600' }
+                            : { border: '1px solid var(--color-line)', color: 'var(--color-text)' }),
+                        }}
+                      >
+                        {isKakao ? '💬 카카오톡으로 문의하기' : '바로가기 →'}
+                      </a>
+                    ) : (
+                      value
+                    )}
+                  </dd>
+                </React.Fragment>
+              );
+            })}
           </dl>
         )}
 
