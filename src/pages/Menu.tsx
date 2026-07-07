@@ -1,12 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useLanguage } from '../contexts/LanguageContext';
+import { usePageSeo } from '../data/pageSeo';
 
 import imgObjktt from '../assets/img/menu/obj_objktt.jpeg';
 import imgGreen from '../assets/img/menu/obj_green.jpeg';
 import imgBasil from '../assets/img/menu/obj_basil.jpeg';
 import imgStrawberry from '../assets/img/menu/obj_strawberry.jpeg';
 import imgKalimcho from '../assets/img/menu/obj_kalimcho.jpeg';
+import imgNegroni from '../assets/img/menu/obj_negroni.jpeg';
+import imgGintonic from '../assets/img/menu/obj_gintonic.jpeg';
+import imgHighball from '../assets/img/menu/obj_highball.jpeg';
+import imgHeineken from '../assets/img/menu/obj_heineken.jpeg';
+import imgCafri from '../assets/img/menu/obj_cafri.jpeg';
+import imgHendricks from '../assets/img/menu/obj_hendricks.jpeg';
+import imgTequila from '../assets/img/menu/obj_tequila.jpeg';
+import imgSoju from '../assets/img/menu/obj_soju.jpeg';
+import imgJameson from '../assets/img/menu/obj_jameson.jpeg';
+import imgJwBlack from '../assets/img/menu/obj_jwblack.jpeg';
+import imgMakers from '../assets/img/menu/obj_makers.jpeg';
+import imgMichters from '../assets/img/menu/obj_michters.jpeg';
+import imgRowans from '../assets/img/menu/obj_rowans.jpeg';
+import imgMacallanSherry from '../assets/img/menu/obj_macallan_sherry.jpeg';
+import imgMacallanDouble from '../assets/img/menu/obj_macallan_double.jpeg';
+import imgBalvenie from '../assets/img/menu/obj_balvenie.jpeg';
+import imgGlenfiddich from '../assets/img/menu/obj_glenfiddich.jpeg';
+import imgArran from '../assets/img/menu/obj_arran.jpeg';
+import imgLagavulin from '../assets/img/menu/obj_lagavulin.jpeg';
+import imgArdbeg from '../assets/img/menu/obj_ardbeg.jpeg';
+import imgLaphroaig from '../assets/img/menu/obj_laphroaig.jpeg';
 import imgPlate from '../assets/img/menu/obj_plate.jpeg';
 import imgPizza from '../assets/img/menu/obj_pizza.jpeg';
 import imgBanana from '../assets/img/menu/obj_banana.jpeg';
@@ -25,6 +47,8 @@ import imgWineDonaFlor from '../assets/img/menu/wine_dona_flor.jpeg';
 import imgWineVistamar from '../assets/img/menu/wine_vistamar.jpeg';
 import imgWineMoet from '../assets/img/menu/wine_moet.jpeg';
 import imgWineMuchasManos from '../assets/img/menu/wine_muchas_manos.jpeg';
+import imgWineOscuridadCab from '../assets/img/menu/wine_oscuridad_cab.jpeg';
+import imgWineOscuridadChard from '../assets/img/menu/wine_oscuridad_chard.jpeg';
 
 interface MenuItem {
   name: string;
@@ -74,39 +98,39 @@ const menuData: MenuCategory[] = [
       { name: 'We Are Green Cocktail', nameKr: '위아 그린 칵테일', description: 'Gin, Green Grape and Rosemary — our 2nd signature', image: imgGreen },
       { name: 'Objktt Basil Smash', nameKr: '오브옉트 바질 스매쉬', description: 'Gin, Basil, Lemon and a Tomato Twist', image: imgBasil },
       { name: 'Strawberry Mojito', nameKr: '딸기 모히또', description: 'Strawberry Mojito with Gin or Vodka', image: imgStrawberry },
-      { name: 'Negroni', nameKr: '네그로니', description: 'Gin, Campari and Sweet Vermouth with a Cinnamon Stick' },
+      { name: 'Negroni', nameKr: '네그로니', description: 'Gin, Campari and Sweet Vermouth with a Cinnamon Stick', image: imgNegroni },
       { name: 'Dirty Gin Fizz', nameKr: '더티 진 피즈', description: 'Gin, Lemon Syrup, Olive Brine and Soda with an Olive Garnish' },
-      { name: 'Gin Tonic', nameKr: '진 토닉', description: 'Gin with Tonic Water or Sparkling Water' },
-      { name: 'Highball', nameKr: '하이볼', description: 'Clean and crisp highball, available with whiskey' },
+      { name: 'Gin Tonic', nameKr: '진 토닉', description: 'Gin with Tonic Water or Sparkling Water', image: imgGintonic },
+      { name: 'Highball', nameKr: '하이볼', description: 'Clean and crisp highball, available with whiskey', image: imgHighball },
       { name: 'Calimocho', nameKr: '칼리모초', description: 'Citrusy Non-Alcoholic Wine Cocktail. Non-Alcoholic version available.', image: imgKalimcho },
     ],
   },
   {
     title: 'Whiskey',
     items: [
-      { name: 'Jameson', nameKr: '제임슨', description: 'Light, smooth, easy-drinking Irish whiskey' },
-      { name: 'Johnnie Walker Black', nameKr: '조니워커 블랙', description: 'Balanced smoke, malt, gentle sweetness' },
-      { name: "Maker's Mark", nameKr: '메이커스 마크', description: 'Sweet wheated bourbon, smooth finish' },
-      { name: "Michter's US1 Small Batch Bourbon", nameKr: 'US 버번', description: 'Elegant sweetness with oak and soft spice' },
-      { name: "Rowan's Creek", nameKr: '로완 크릭', description: 'Rich caramel, vanilla, bold bourbon body' },
-      { name: 'Macallan 12yrs Sherry Oak', nameKr: '맥캘란 12년 쉐리 오크', description: 'Rich sherry sweetness and dried fruits' },
-      { name: 'Macallan 12yrs Double Cask', nameKr: '맥캘란 12년 블 캐스크', description: 'Balanced honeyed sweetness and gentle spice' },
-      { name: 'Balvenie 12yrs Double Wood', nameKr: '발베니 12년 더블우드', description: 'Soft vanilla, honey, and warm oak' },
-      { name: 'Glenfiddich 15yrs', nameKr: '글렌피딕 15년', description: 'Smooth malt sweetness with oak and spice' },
-      { name: 'Arran 10yrs', nameKr: '아란 10년', description: 'Fresh citrus, apple, clean malt' },
-      { name: 'Lagavulin 8yrs', nameKr: '라가불린 8년', description: 'Medicinal peat, seaweed, smoky character' },
-      { name: 'Ardbeg 10yrs', nameKr: '아드벡 10년', description: 'Intense peat smoke and maritime notes' },
-      { name: 'Laphroaig 10yrs', nameKr: '라프로익 10년', description: 'Bold peat, black pepper, deep smoke' },
+      { name: 'Jameson', nameKr: '제임슨', description: 'Light, smooth, easy-drinking Irish whiskey', image: imgJameson },
+      { name: 'Johnnie Walker Black', nameKr: '조니워커 블랙', description: 'Balanced smoke, malt, gentle sweetness', image: imgJwBlack },
+      { name: "Maker's Mark", nameKr: '메이커스 마크', description: 'Sweet wheated bourbon, smooth finish', image: imgMakers },
+      { name: "Michter's US1 Small Batch Bourbon", nameKr: 'US 버번', description: 'Elegant sweetness with oak and soft spice', image: imgMichters },
+      { name: "Rowan's Creek", nameKr: '로완 크릭', description: 'Rich caramel, vanilla, bold bourbon body', image: imgRowans },
+      { name: 'Macallan 12yrs Sherry Oak', nameKr: '맥캘란 12년 쉐리 오크', description: 'Rich sherry sweetness and dried fruits', image: imgMacallanSherry },
+      { name: 'Macallan 12yrs Double Cask', nameKr: '맥캘란 12년 블 캐스크', description: 'Balanced honeyed sweetness and gentle spice', image: imgMacallanDouble },
+      { name: 'Balvenie 12yrs Double Wood', nameKr: '발베니 12년 더블우드', description: 'Soft vanilla, honey, and warm oak', image: imgBalvenie },
+      { name: 'Glenfiddich 15yrs', nameKr: '글렌피딕 15년', description: 'Smooth malt sweetness with oak and spice', image: imgGlenfiddich },
+      { name: 'Arran 10yrs', nameKr: '아란 10년', description: 'Fresh citrus, apple, clean malt', image: imgArran },
+      { name: 'Lagavulin 8yrs', nameKr: '라가불린 8년', description: 'Medicinal peat, seaweed, smoky character', image: imgLagavulin },
+      { name: 'Ardbeg 10yrs', nameKr: '아드벡 10년', description: 'Intense peat smoke and maritime notes', image: imgArdbeg },
+      { name: 'Laphroaig 10yrs', nameKr: '라프로익 10년', description: 'Bold peat, black pepper, deep smoke', image: imgLaphroaig },
     ],
   },
   {
     title: 'Beer & Spirits',
     items: [
-      { name: 'Heineken Draft Beer', nameKr: '하이네켄 생맥주', description: 'Premium Dutch lager on draft — smooth and refreshing' },
-      { name: 'Cafri (Bottled)', nameKr: '카프리 (병맥주)', description: 'Light Korean lager, crisp and easy drinking' },
-      { name: "Hendrick's Gin", nameKr: '헨드릭스 진', description: 'Honey, creamy malt, gentle oak, nutty' },
-      { name: 'Tequila Sierra Reposado Shot', nameKr: '테킬라 시에라 레포사도 샷', description: 'Powerful peat, smoke, iodine, full-bodied' },
-      { name: 'Soju Shot (25% ABV)', nameKr: '소주 샷 (25도)', description: 'Clean and smooth Korean spirit' },
+      { name: 'Heineken Draft Beer', nameKr: '하이네켄 생맥주', description: 'Premium Dutch lager on draft — smooth and refreshing', image: imgHeineken },
+      { name: 'Cafri (Bottled)', nameKr: '카프리 (병맥주)', description: 'Light Korean lager, crisp and easy drinking', image: imgCafri },
+      { name: "Hendrick's Gin", nameKr: '헨드릭스 진', description: 'Honey, creamy malt, gentle oak, nutty', image: imgHendricks },
+      { name: 'Tequila Sierra Reposado Shot', nameKr: '테킬라 시에라 레포사도 샷', description: 'Powerful peat, smoke, iodine, full-bodied', image: imgTequila },
+      { name: 'Soju Shot (25% ABV)', nameKr: '소주 샷 (25도)', description: 'Clean and smooth Korean spirit', image: imgSoju },
     ],
   },
   {
@@ -122,7 +146,7 @@ const menuData: MenuCategory[] = [
       { name: 'Trambusti Cavalleresco', nameKr: '트람부스티 카발레레스코', description: '2023 · ITALY · DRY — Traditional Italian red with balanced acidity and refined structure.', image: imgWineTrambusti },
       { name: 'Canada Negra Tempranillo-Monastrell', nameKr: '카나다 네그라 템프라니요-모나스트렐', description: '2024 · SPAIN · DRY — Deep color with concentrated fruit flavors and a hint of spice.', image: imgWineCanadaNegra },
       { name: 'Bajo Montepulciano', nameKr: '바조 몬테풀치아노', description: '2023 · ITALY · DRY — A supple daily red wine with charming cherry and blackberry notes.', image: imgWineBajo },
-      { name: 'Oscuridad Cabernet Sauvignon', nameKr: '오스쿠리다 카베르네 소비뇽', description: '2024 · SPAIN · DRY — Deep ruby wine with moderate weight and a comfortable finish.' },
+      { name: 'Oscuridad Cabernet Sauvignon', nameKr: '오스쿠리다 카베르네 소비뇽', description: '2024 · SPAIN · DRY — Deep ruby wine with moderate weight and a comfortable finish.', image: imgWineOscuridadCab },
     ],
   },
   {
@@ -130,7 +154,7 @@ const menuData: MenuCategory[] = [
     items: [
       { name: 'Pure Est Verdejo', nameKr: '퓨어 에스트 베르데호', description: '2023 · SPAIN · DRY — Delightful acidity with vibrant tropical fruit notes.', image: imgWinePureEst },
       { name: 'Dona Flor Vinho Verde', nameKr: '도나 플로르 비뉴 베르데', description: 'NV · PORTUGAL · SLIGHTLY SWEET — Lightly carbonated ‘Green Wine’ with a fresh, crisp character.', image: imgWineDonaFlor },
-      { name: 'Oscuridad Chardonnay', nameKr: '오스쿠리다 샤르도네', description: '2025 · SPAIN · DRY — Ripe apple and citrus aromas with a smooth, pleasant mouthfeel.' },
+      { name: 'Oscuridad Chardonnay', nameKr: '오스쿠리다 샤르도네', description: '2025 · SPAIN · DRY — Ripe apple and citrus aromas with a smooth, pleasant mouthfeel.', image: imgWineOscuridadChard },
       { name: 'Vistamar Brisa Chardonnay', nameKr: '비스타마르 브리사 샤르도네', description: '2024 · CHILE · DRY — Rich fruit flavors with a clean and refreshing finish.', image: imgWineVistamar },
     ],
   },
@@ -156,6 +180,7 @@ const menuData: MenuCategory[] = [
 ];
 
 const Menu: React.FC = () => {
+  usePageSeo('menu');
   const { isMobile } = useBreakpoint();
   const { language } = useLanguage();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
