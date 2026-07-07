@@ -29,6 +29,7 @@ const Grid: React.FC<GridProps> = ({ children, style, showLines = false, classNa
            return React.cloneElement(child as React.ReactElement<{ style?: React.CSSProperties }>, {
              style: {
                backgroundColor: 'var(--color-bg)',
+               transition: 'background-color 0.3s ease',
                ...(child as React.ReactElement<{ style?: React.CSSProperties }>).props.style
              }
            });

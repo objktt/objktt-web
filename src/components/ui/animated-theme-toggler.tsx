@@ -82,34 +82,62 @@ export function AnimatedThemeToggler({
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
-    setIsDark(
-      document.documentElement.classList.contains("dark") || 
-      document.documentElement.getAttribute("data-theme") === "dark"
-    );
+    const read = () =>
+      document.documentElement.classList.contains("dark") ||
+      document.documentElement.getAttribute("data-theme") === "dark";
+    setIsDark(read());
+    // Stay in sync with the real theme: Layout sets `data-theme` in its own
+    // effect (which React runs *after* this child effect), and a second
+    // toggler instance can flip it too. Observe instead of reading once so the
+    // icon never drifts from the actual theme.
+    const observer = new MutationObserver(() => setIsDark(read()));
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class", "data-theme"],
+    });
     requestAnimationFrame(() => {
       setIsFirst(false);
     });
+    return () => observer.disconnect();
   }, []);
 
   const toggle = () => {
     // Sync both for compatibility with the current codebase
     const isNowDark = !isDark;
-    
-    if (isNowDark) {
-      document.documentElement.classList.add("dark");
-      document.documentElement.setAttribute("data-theme", "dark");
-      localStorage.setItem("theme", "dark");
+
+    // Flip the theme on the document. Wrapped in a View Transition so the whole
+    // page cross-fades uniformly — every container changes at the same speed,
+    // regardless of its own per-element CSS transitions. Falls back to an instant
+    // flip (CSS transitions still apply) where View Transitions aren't supported.
+    const applyTheme = () => {
+      if (isNowDark) {
+        document.documentElement.classList.add("dark");
+        document.documentElement.setAttribute("data-theme", "dark");
+        localStorage.setItem("theme", "dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+        document.documentElement.setAttribute("data-theme", "light");
+        localStorage.setItem("theme", "light");
+      }
+      // Dispatch custom event so other components (like Layout) can sync
+      window.dispatchEvent(new CustomEvent('themeChange', { detail: isNowDark ? 'dark' : 'light' }));
+    };
+
+    const reduceMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const startVT = (document as Document & {
+      startViewTransition?: (cb: () => void) => void;
+    }).startViewTransition?.bind(document);
+
+    if (startVT && !reduceMotion) {
+      startVT(applyTheme);
     } else {
-      document.documentElement.classList.remove("dark");
-      document.documentElement.setAttribute("data-theme", "light");
-      localStorage.setItem("theme", "light");
+      applyTheme();
     }
-    
+
     setIsDark(isNowDark);
-    
-    // Dispatch custom event so other components (like Layout) can sync
-    window.dispatchEvent(new CustomEvent('themeChange', { detail: isNowDark ? 'dark' : 'light' }));
-    
+
     if (sound) tick(lastSnd);
   };
 

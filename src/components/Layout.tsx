@@ -25,11 +25,26 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return 'light';
   });
   const [menuOpen, setMenuOpen] = useState(false);
+  // Top announcement banner — dismissible, persisted. Bump the version suffix to
+  // re-show a new announcement to everyone.
+  const BANNER_KEY = 'objktt-banner-shop-open';
+  const [bannerOpen, setBannerOpen] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return localStorage.getItem(BANNER_KEY) !== 'dismissed';
+  });
+  const dismissBanner = () => {
+    setBannerOpen(false);
+    try { localStorage.setItem(BANNER_KEY, 'dismissed'); } catch { /* ignore */ }
+  };
+  const BANNER_H = 38;
   const { language, toggleLanguage, t } = useLanguage();
   const { isMobile } = useBreakpoint();
   const { cart, open: openCart } = useCart();
   const { isLoggedIn } = useAuth();
   const cartCount = cart?.totalQuantity ?? 0;
+
+  // Header has its own full-width background; cells stay transparent over it.
+  const headerCellBg = 'transparent';
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -60,23 +75,98 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      {/* Top announcement banner */}
+      {bannerOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: BANNER_H,
+            zIndex: 101,
+            backgroundColor: '#000',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <NavLink
+            to="/shop"
+            style={{
+              color: '#fff',
+              textDecoration: 'none',
+              fontSize: isMobile ? '0.78rem' : '0.85rem',
+              fontWeight: 500,
+              letterSpacing: '0.01em',
+              padding: '0 2.5rem',
+              textAlign: 'center',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {language === 'ko'
+              ? '🎉 오브옉트 레코드샵이 오픈했습니다. 온라인 및 오프라인에서 동시 구입 가능합니다. →'
+              : '🎉 Objktt Record Shop is now open — shop online & in store. →'}
+          </NavLink>
+          <button
+            type="button"
+            onClick={dismissBanner}
+            aria-label={language === 'ko' ? '배너 닫기' : 'Dismiss'}
+            style={{
+              position: 'absolute',
+              right: isMobile ? '0.75rem' : '1.25rem',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0,
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#fff',
+              opacity: 0.85,
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+              <line x1="3" y1="3" x2="13" y2="13" />
+              <line x1="13" y1="3" x2="3" y2="13" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       <header style={{
         position: 'fixed',
-        top: 0,
+        top: bannerOpen ? BANNER_H : 0,
         left: 0,
         width: '100%',
         zIndex: 100,
+        backgroundColor: 'var(--color-bg)',
+        transition: 'background-color 0.3s ease',
       }}>
-        <Grid showLines={true} style={{ gap: 0, position: 'relative' }}>
+        <Grid showLines={false} style={{
+          gap: 0,
+          position: 'relative',
+          margin: isMobile ? '0 1.5rem' : '0 4rem',
+          width: isMobile ? 'calc(100% - 3rem)' : 'calc(100% - 8rem)',
+          borderBottom: '1px solid var(--color-line)',
+        }}>
 
           {/* Logo Section */}
           <div style={{
-             gridColumn: isMobile ? '1 / -1' : '1 / 5',
+             gridColumn: isMobile ? '1 / -1' : '1 / 4',
              padding: '1rem',
              display: 'flex',
              alignItems: 'center',
              justifyContent: 'space-between',
              height: 'var(--header-height)',
+             backgroundColor: headerCellBg, transition: 'background-color 0.3s ease',
           }}>
             <NavLink to="/" aria-label="Objktt home">
               <img
@@ -90,7 +180,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {/* Mobile: hamburger + toggles */}
             {isMobile && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <CartButton count={cartCount} onClick={openCart} />
+                {(cartCount > 0 || isLoggedIn) && <CartButton count={cartCount} onClick={openCart} />}
                 <button
                   onClick={toggleLanguage}
                   style={{
@@ -147,78 +237,100 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
           </div>
 
-          {/* Desktop Navigation */}
+          {/* Desktop: centered menu (grid cell 4/10 → masks the grid background, centered) */}
           {!isMobile && (
             <nav style={{
-               gridColumn: '5 / 13',
-               display: 'flex',
-               justifyContent: 'flex-end',
-               alignItems: 'center',
-               padding: '0 2rem',
-               height: 'var(--header-height)'
+              gridColumn: '4 / 10',
+              height: 'var(--header-height)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '1.75rem',
+              backgroundColor: headerCellBg, transition: 'background-color 0.3s ease',
             }}>
-              <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-                <NavLink to="/about" className={({ isActive }) => isActive ? "active-link" : ""} style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t.nav.about}</NavLink>
-                <NavLink to="/menu" className={({ isActive }) => isActive ? "active-link" : ""} style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t.nav.menu}</NavLink>
-                <NavLink to="/music" className={({ isActive }) => isActive ? "active-link" : ""} style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t.nav.music}</NavLink>
-                <NavLink to="/events" className={({ isActive }) => isActive ? "active-link" : ""} style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t.nav.events}</NavLink>
-                <NavLink to="/shop" className={({ isActive }) => isActive ? "active-link" : ""} style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t.nav.shop}</NavLink>
-
-                <NavLink to="/account" className={({ isActive }) => isActive ? "active-link" : ""} style={{ marginLeft: '1.5rem', fontSize: '0.875rem', fontWeight: 500 }}>
-                  {isLoggedIn ? '마이페이지' : '로그인'}
-                </NavLink>
-
-                <span style={{ marginLeft: '1.5rem', display: 'inline-flex', alignItems: 'center' }}>
-                  <CartButton count={cartCount} onClick={openCart} />
-                </span>
-
-                <button
-                  onClick={toggleLanguage}
-                  style={{
-                    marginLeft: '0.5rem',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: '0.875rem',
-                    fontWeight: 600,
-                    color: 'var(--color-text)',
-                    opacity: 0.8,
-                    fontFamily: 'inherit'
-                  }}
-                >
-                  {language === 'en' ? 'KR' : 'EN'}
-                </button>
-
-                <AnimatedThemeToggler sound={true} />
-              </div>
+              <NavLink to="/about" className={({ isActive }) => isActive ? "active-link" : ""} style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t.nav.about}</NavLink>
+              <NavLink to="/menu" className={({ isActive }) => isActive ? "active-link" : ""} style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t.nav.menu}</NavLink>
+              <NavLink to="/music" className={({ isActive }) => isActive ? "active-link" : ""} style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t.nav.music}</NavLink>
+              {/* Events 카테고리 임시 숨김 */}
+              {/* <NavLink to="/events" className={({ isActive }) => isActive ? "active-link" : ""} style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t.nav.events}</NavLink> */}
+              <NavLink to="/shop" className={({ isActive }) => isActive ? "active-link" : ""} style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t.nav.shop}</NavLink>
             </nav>
+          )}
+
+          {/* Desktop: right utilities — account · cart · language · theme (same depth) */}
+          {!isMobile && (
+            <div style={{
+              gridColumn: '10 / 13',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              gap: '1.25rem',
+              padding: '0 2rem',
+              height: 'var(--header-height)',
+              backgroundColor: headerCellBg, transition: 'background-color 0.3s ease',
+            }}>
+              <NavLink
+                to="/account"
+                className={({ isActive }) => isActive ? "active-link" : ""}
+                style={{ fontSize: '0.8rem', fontWeight: 500, opacity: 0.85 }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.85')}
+              >
+                {isLoggedIn ? t.nav.myPage : t.nav.login}
+              </NavLink>
+
+              {(cartCount > 0 || isLoggedIn) && <CartButton count={cartCount} onClick={openCart} />}
+
+              <button
+                onClick={toggleLanguage}
+                aria-label="Toggle language"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  fontWeight: 500,
+                  color: 'var(--color-text)',
+                  opacity: 0.85,
+                  fontFamily: 'inherit',
+                  padding: 0,
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.85')}
+              >
+                {language === 'en' ? 'KR' : 'EN'}
+              </button>
+
+              <AnimatedThemeToggler sound={true} />
+            </div>
           )}
         </Grid>
       </header>
 
       {/* Mobile Menu Overlay */}
       {isMobile && menuOpen && (
-        <div className="mobile-menu-overlay" style={{ top: 'var(--header-height)' }}>
+        <div className="mobile-menu-overlay" style={{ top: `calc(var(--header-height) + ${bannerOpen ? BANNER_H : 0}px)` }}>
           <NavLink to="/about" onClick={() => setMenuOpen(false)} style={{ fontSize: '2rem', fontWeight: 500 }}>{t.nav.about}</NavLink>
           <NavLink to="/menu" onClick={() => setMenuOpen(false)} style={{ fontSize: '2rem', fontWeight: 500 }}>{t.nav.menu}</NavLink>
           <NavLink to="/music" onClick={() => setMenuOpen(false)} style={{ fontSize: '2rem', fontWeight: 500 }}>{t.nav.music}</NavLink>
-          <NavLink to="/events" onClick={() => setMenuOpen(false)} style={{ fontSize: '2rem', fontWeight: 500 }}>{t.nav.events}</NavLink>
+          {/* Events 카테고리 임시 숨김 */}
+          {/* <NavLink to="/events" onClick={() => setMenuOpen(false)} style={{ fontSize: '2rem', fontWeight: 500 }}>{t.nav.events}</NavLink> */}
           <NavLink to="/shop" onClick={() => setMenuOpen(false)} style={{ fontSize: '2rem', fontWeight: 500 }}>{t.nav.shop}</NavLink>
-          <NavLink to="/account" onClick={() => setMenuOpen(false)} style={{ fontSize: '2rem', fontWeight: 500 }}>{isLoggedIn ? '마이페이지' : '로그인'}</NavLink>
+          <NavLink to="/account" onClick={() => setMenuOpen(false)} style={{ fontSize: '2rem', fontWeight: 500 }}>{isLoggedIn ? t.nav.myPage : t.nav.login}</NavLink>
         </div>
       )}
 
-      <main style={{ paddingTop: 'var(--header-height)', flexGrow: 1 }}>
+      <main style={{ paddingTop: `calc(var(--header-height) + ${bannerOpen ? BANNER_H : 0}px)`, flexGrow: 1 }}>
         {children}
       </main>
 
       {/* Footer */}
       <footer>
-        <Grid showLines={false}>
-          {/* Column 1: Logo */}
+        <Grid showLines={false} style={{ margin: isMobile ? '0 1.5rem' : '0 4rem', width: isMobile ? 'calc(100% - 3rem)' : 'calc(100% - 8rem)' }}>
+          {/* Column 1: Brand */}
           <div style={{
             gridColumn: isMobile ? '1 / -1' : '1 / 5',
-            padding: isMobile ? '2rem 1rem 0' : '1.5rem 1rem 4rem',
+            padding: isMobile ? '2.5rem 1rem 0.5rem' : '2.75rem 1rem 2.75rem',
             borderTop: '1px solid var(--color-line)'
           }}>
             <svg
@@ -238,90 +350,86 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <path d="M104.26,228.34c-54.51,0-98.86,44.35-98.86,98.86,0,54.51,44.35,98.86,98.86,98.86,54.51,0,98.86-44.35,98.86-98.86s-44.35-98.86-98.86-98.86ZM170.28,327.2c0,36.4-29.62,66.02-66.02,66.02-36.4,0-66.02-29.62-66.02-66.02,0-36.41,29.62-66.02,66.02-66.02,36.41,0,66.02,29.62,66.02,66.02Z"/>
               <path d="M388.15,11.79v58.15c-38.1-19.35-85.01-19.35-123.11-.02V11.79s-32.84,0-32.84,0v182.1s32.84,0,32.84,0v-6.89c18.58,9.45,39.62,14.51,61.54,14.51,21.94,0,42.99-5.06,61.58-14.51v6.89h32.84s0-182.1,0-182.1h-32.84ZM265.04,108.64c35.33-27.45,87.78-27.45,123.11,0v39.61c-35.33,27.45-87.79,27.44-123.11,0v-39.6Z"/>
             </svg>
-            <div style={{ fontSize: '0.7rem', opacity: 0.5, lineHeight: 1.7, marginBottom: '0.75rem' }}>
-              {BUSINESS.companyName} ({BUSINESS.brandName})<br />
-              대표 {BUSINESS.representative} · 사업자등록번호 {BUSINESS.registrationNumber}<br />
-              통신판매업신고 {BUSINESS.mailOrderNumber}<br />
-              {BUSINESS.address}<br />
-              {BUSINESS.phone} · {BUSINESS.email}
-            </div>
-            <div style={{ fontSize: '0.75rem', opacity: 0.5 }}>
-              {t.footer.copyright}
+            <div style={{ fontSize: '0.9rem', opacity: 0.6, lineHeight: 1.6, maxWidth: '15rem', whiteSpace: 'pre-line' }}>
+              {t.footer.tagline}
             </div>
           </div>
 
-          {/* Column 2: Contact & Socials */}
+          {/* Column 2: Contact */}
           <div style={{
             gridColumn: isMobile ? '1 / -1' : '5 / 9',
-            padding: isMobile ? '2rem 1rem 0' : '1.5rem 1rem 4rem',
+            padding: isMobile ? '2.5rem 1rem 0.5rem' : '2.75rem 1rem 2.75rem',
             borderTop: !isMobile ? '1px solid var(--color-line)' : 'none',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between'
           }}>
-            <div>
-              <div style={{ fontSize: '0.75rem', opacity: 0.5, marginBottom: '0.5rem' }}>{t.footer.contact.label}</div>
-              <div style={{ fontSize: '0.875rem', lineHeight: 1.5 }}>
-                <a href={`mailto:${t.footer.contact.email}`} style={{ color: 'inherit', textDecoration: 'none', display: 'block', marginBottom: '0.5rem' }}>
-                  {t.footer.contact.email}
-                </a>
-                <div style={{ opacity: 0.6, marginBottom: '0.5rem' }}>
-                  Seoul, Jung-gu, Myeongdong 8ga-gil, 58 4F
-                </div>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <a href="https://www.instagram.com/objktt.recordbar" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit', outline: 'none' }}>
-                    Instagram
-                  </a>
-                  <a href="https://soundcloud.com/objktt_recordbar" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit', outline: 'none' }}>
-                    SoundCloud
-                  </a>
-                </div>
-              </div>
+            <div style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.5, marginBottom: '0.9rem' }}>
+              {t.footer.contactLabel}
+            </div>
+            <div style={{ fontSize: '0.875rem', lineHeight: 2 }}>
+              <a href={`tel:${BUSINESS.phone.replace(/-/g, '')}`} style={{ color: 'inherit', textDecoration: 'none', display: 'block' }}>
+                {BUSINESS.phone}
+                <span style={{ opacity: 0.55, marginLeft: '0.4rem', fontSize: '0.8125rem' }}>
+                  ({language === 'ko' ? '상담 12:00–18:00' : 'Calls 12:00–18:00'})
+                </span>
+              </a>
+              <a href={`mailto:${BUSINESS.email}`} style={{ color: 'inherit', textDecoration: 'none', display: 'block' }}>
+                {BUSINESS.email}
+              </a>
+              <a href={BUSINESS.kakaoChatUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none', display: 'block' }}>
+                {t.footer.kakao}
+              </a>
+            </div>
+            <div style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.5, margin: '1.75rem 0 0.9rem' }}>
+              {t.footer.followLabel}
+            </div>
+            <div style={{ display: 'flex', gap: '1.1rem', fontSize: '0.875rem' }}>
+              <a href="https://www.instagram.com/objktt.recordbar" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>Instagram</a>
+              <a href="https://soundcloud.com/objktt_recordbar" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>SoundCloud</a>
             </div>
           </div>
 
-          {/* Column 3: Hours + Shop Info */}
+          {/* Column 3: Newsletter */}
           <div style={{
              gridColumn: isMobile ? '1 / -1' : '9 / 13',
-             padding: isMobile ? '2rem 1rem 2rem' : '1.5rem 1rem 4rem',
+             padding: isMobile ? '2.5rem 1rem 1rem' : '2.75rem 1rem 2.75rem',
              borderTop: !isMobile ? '1px solid var(--color-line)' : 'none',
-             display: 'flex',
-             flexDirection: 'column',
-             justifyContent: 'space-between',
-             gap: '1.5rem',
           }}>
-            <div>
-              <div style={{ fontSize: '0.75rem', opacity: 0.5, marginBottom: '0.5rem', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                OBJKTT Drop
-              </div>
-              <div style={{ fontSize: '0.875rem', opacity: 0.6, lineHeight: 1.5, marginBottom: '0.75rem' }}>
-                신상 입고 소식을 가장 먼저 받아보세요.
-              </div>
-              <EmailSignup source="newsletter" buttonLabel="구독" successLabel="구독 완료 ✓ 곧 소식 전할게요." />
+            <div style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.5, marginBottom: '0.9rem' }}>
+              {t.footer.newsletterLabel}
             </div>
-            <div>
-              <div style={{ fontSize: '0.75rem', opacity: 0.5, marginBottom: '0.5rem' }}>{t.footer.hours.label}</div>
-              <div style={{ fontSize: '0.875rem', whiteSpace: 'pre-line', lineHeight: 1.5 }}>
-                {t.footer.hours.value}
-              </div>
+            <div style={{ fontSize: '0.875rem', opacity: 0.6, lineHeight: 1.5, marginBottom: '1rem' }}>
+              {t.footer.newsletterDesc}
             </div>
-            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.875rem', flexWrap: 'wrap' }}>
-              <NavLink to="/notices" style={{ color: 'inherit', textDecoration: 'none' }}>
-                {t.notices.title}
-              </NavLink>
-              <NavLink to="/faq" style={{ color: 'inherit', textDecoration: 'none' }}>
-                {t.faq.title}
-              </NavLink>
-              <NavLink to="/terms" style={{ color: 'inherit', textDecoration: 'none' }}>
-                이용약관
-              </NavLink>
-              <NavLink to="/refund" style={{ color: 'inherit', textDecoration: 'none' }}>
-                환불·교환
-              </NavLink>
-              <NavLink to="/privacy" style={{ color: 'inherit', textDecoration: 'none' }}>
-                {t.privacy.title}
-              </NavLink>
+            <EmailSignup
+              source="newsletter"
+              placeholder={t.footer.newsletterPlaceholder}
+              buttonLabel={t.footer.newsletterBtn}
+              successLabel={t.footer.newsletterSuccess}
+            />
+          </div>
+
+          {/* Bottom bar: legal links · business info · copyright */}
+          <div style={{
+            gridColumn: '1 / -1',
+            borderTop: '1px solid var(--color-line)',
+            padding: isMobile ? '1.5rem 1rem 2.5rem' : '1.5rem 1rem 2.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+          }}>
+            <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', fontSize: '0.8rem' }}>
+              <NavLink to="/notices" style={{ color: 'inherit', textDecoration: 'none', opacity: 0.7 }}>{t.footer.links.notices}</NavLink>
+              <NavLink to="/faq" style={{ color: 'inherit', textDecoration: 'none', opacity: 0.7 }}>{t.footer.links.faq}</NavLink>
+              <NavLink to="/terms" style={{ color: 'inherit', textDecoration: 'none', opacity: 0.7 }}>{t.footer.links.terms}</NavLink>
+              <NavLink to="/refund" style={{ color: 'inherit', textDecoration: 'none', opacity: 0.7 }}>{t.footer.links.refund}</NavLink>
+              <NavLink to="/points" style={{ color: 'inherit', textDecoration: 'none', opacity: 0.7 }}>{t.footer.links.points}</NavLink>
+              <NavLink to="/privacy" style={{ color: 'inherit', textDecoration: 'none', opacity: 0.7 }}>{t.footer.links.privacy}</NavLink>
             </div>
+            <div style={{ fontSize: '0.7rem', opacity: 0.45, lineHeight: 1.8 }}>
+              {language === 'ko' ? BUSINESS.companyName : BUSINESS.companyNameEn} ({language === 'ko' ? BUSINESS.brandName : BUSINESS.brandNameEn}) · {t.footer.bizRep} {language === 'ko' ? BUSINESS.representative : BUSINESS.representativeEn} · {t.footer.bizReg} {BUSINESS.registrationNumber} · {t.footer.bizMailOrder} {BUSINESS.mailOrderNumber}
+              <br />
+              {language === 'ko' ? BUSINESS.address : BUSINESS.addressEn} · {t.footer.hoursLabel} {t.footer.hoursValue} · {language === 'ko' ? '전화' : 'Tel'} {BUSINESS.phone} {language === 'ko' ? '(상담 12:00–18:00)' : '(calls 12:00–18:00)'}
+            </div>
+            <div style={{ fontSize: '0.7rem', opacity: 0.45 }}>{t.footer.copyright}</div>
           </div>
         </Grid>
       </footer>

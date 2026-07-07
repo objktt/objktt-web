@@ -12,11 +12,25 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
+// Guess the visitor's language from their locale when no preference is saved.
+// Korea-based visitors (Asia/Seoul timezone or ko-* browser locale) open in Korean.
+const detectLanguage = (): Language => {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz === 'Asia/Seoul') return 'ko';
+  } catch {
+    // Intl unavailable — fall through to navigator.language
+  }
+  if (navigator.language?.toLowerCase().startsWith('ko')) return 'ko';
+  return 'en';
+};
+
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
-  // Try to get from localStorage or default to 'en'
+  // Saved preference wins; otherwise detect from the visitor's country/locale.
   const [language, setLanguageState] = useState<Language>(() => {
     const saved = localStorage.getItem('objktt-language');
-    return (saved === 'en' || saved === 'ko') ? saved : 'en';
+    if (saved === 'en' || saved === 'ko') return saved;
+    return detectLanguage();
   });
 
   const setLanguage = (lang: Language) => {

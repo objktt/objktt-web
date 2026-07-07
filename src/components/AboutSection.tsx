@@ -44,7 +44,7 @@ const AboutSection: React.FC = () => {
   return (
     <section id="about" style={{ position: 'relative', paddingBottom: '8rem' }}>
       <div style={{
-        padding: `${isMobile ? '3rem' : '5rem'} ${inset} 0`,
+        padding: `${isMobile ? '5rem' : '7rem'} ${inset} 0`,
         display: 'grid',
         gridTemplateColumns: isMobile ? '1fr' : 'repeat(12, 1fr)',
         gridTemplateRows: isMobile ? 'auto' : 'auto 1fr auto auto',
@@ -102,7 +102,7 @@ const AboutSection: React.FC = () => {
         {/* Row 1: Title */}
         <div style={{ gridColumn: isMobile ? '1 / -1' : '1 / 5', position: 'relative', zIndex: 1 }}>
           <h2 style={{
-            fontSize: isMobile ? '12vw' : 'clamp(3.5rem, 7vw, 7.5rem)',
+            fontSize: isMobile ? '10vw' : 'clamp(3rem, 6vw, 6.5rem)',
             fontWeight: 500,
             lineHeight: 0.95,
             letterSpacing: isMobile ? '-0.03em' : '-0.04em',
