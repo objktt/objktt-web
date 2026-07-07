@@ -53,3 +53,17 @@ React 19 + TypeScript + Vite SPA for **Objktt**, a record bar / cultural space w
 - 3D: `@react-three/fiber` + `@react-three/drei` + `three`
 - Animation: `framer-motion`
 - Gestures: `@use-gesture/react`
+
+## Cross-project coordination (shared memory)
+
+This storefront (objktt.kr) reads from Shopify; the **hub ERP**
+(`/Users/huey/development/hub.kolektt.kr`) writes the products via the Shopify
+Admin API. The two projects/agents coordinate through a shared file that acts as
+shared memory — **read it before Shopify-related work and append decisions to its
+Agent log**:
+
+**`/Users/huey/development/OBJKTT_SHOPIFY_CONTRACT.md`**
+
+It documents the Shopify store, the product data contract (title format, vendor,
+variant options, kolektt.* metafields, body_html sections, image gallery,
+category/music-genre), and current open issues (e.g. the Storefront API 404).
