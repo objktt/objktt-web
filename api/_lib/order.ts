@@ -270,7 +270,8 @@ export async function processPaidPayment(paymentId: string): Promise<OrderResult
   // 5) Recompute the authoritative total and compare to what was charged.
   let subtotal = 0;
   for (const item of lineItems) subtotal += (byId.get(item.variantId) as VariantInfo).price * item.qty;
-  const shipFee = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING;
+  const pickup = cd.delivery === 'pickup'; // 매장 픽업 — 배송비 0, 배송지 없음
+  const shipFee = pickup ? 0 : subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING;
 
   // 적립금 사용: 서명 토큰(prepare 단계에서 인증·잔액 검증 완료)을 검증한다.
   // 위조 방지를 위해 사용 포인트는 토큰의 값만 신뢰하고, 상품 소계로 상한을 건다
@@ -314,6 +315,7 @@ export async function processPaidPayment(paymentId: string): Promise<OrderResult
     customAttributes: [
       { key: 'PortOne paymentId', value: paymentId },
       { key: 'PG', value: 'PortOne / KG이니시스' },
+      { key: '수령 방법', value: pickup ? '매장 픽업' : '택배 배송' },
       ...(pointsUsed > 0 ? [{ key: '적립금 사용', value: `${pointsUsed.toLocaleString('ko-KR')}원` }] : []),
     ],
     // 적립금 사용분을 상품 고정 할인으로 반영 → 주문 합계가 실결제액과 일치한다.
@@ -328,18 +330,22 @@ export async function processPaidPayment(paymentId: string): Promise<OrderResult
         }
       : {}),
     lineItems: lineItems.map((l) => ({ variantId: l.variantId, quantity: l.qty })),
-    shippingAddress: {
-      firstName: name || '고객',
-      address1: (shipping.address1 || '').trim() || '-',
-      address2: (shipping.address2 || '').trim() || undefined,
-      zip: (shipping.zip || '').trim() || undefined,
-      city: '서울',
-      countryCode: 'KR',
-      phone,
-    },
+    ...(pickup
+      ? {}
+      : {
+          shippingAddress: {
+            firstName: name || '고객',
+            address1: (shipping.address1 || '').trim() || '-',
+            address2: (shipping.address2 || '').trim() || undefined,
+            zip: (shipping.zip || '').trim() || undefined,
+            city: '서울',
+            countryCode: 'KR',
+            phone,
+          },
+        }),
     shippingLines: [
       {
-        title: shipFee === 0 ? '무료배송' : '기본배송',
+        title: pickup ? '매장 픽업' : shipFee === 0 ? '무료배송' : '기본배송',
         priceSet: { shopMoney: { amount: String(shipFee), currencyCode: CURRENCY } },
       },
     ],

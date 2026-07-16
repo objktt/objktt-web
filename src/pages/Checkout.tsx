@@ -85,8 +85,11 @@ const Checkout: React.FC = () => {
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  // 수령 방법: 택배 배송(기본) 또는 매장 픽업(배송비 무료, 주소 불필요).
+  // 서버(tossOrder.ts)가 같은 규칙으로 금액을 재계산해 검증한다.
+  const [delivery, setDelivery] = useState<'shipping' | 'pickup'>('shipping');
   const subtotal = cart ? Number(cart.cost.subtotalAmount.amount) : 0;
-  const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 3000;
+  const shipping = delivery === 'pickup' ? 0 : subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 3000;
 
   // 적립금 사용 (회원 전용). 적립금은 상품 금액에만 적용 → 한도 = min(잔액, 상품합계).
   const [ptInput, setPtInput] = useState('');
@@ -213,7 +216,7 @@ const Checkout: React.FC = () => {
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email) &&
     form.name.trim().length > 0 &&
     form.phone.trim().length >= 9 &&
-    form.address1.trim().length > 0;
+    (delivery === 'pickup' || form.address1.trim().length > 0);
 
   const pad = isMobile ? '5rem 1.5rem 4rem' : '7rem 4rem 5rem';
 
@@ -305,6 +308,7 @@ const Checkout: React.FC = () => {
           JSON.stringify({
             lineItems: cart.lines.map((l) => ({ variantId: l.merchandise.id, qty: l.quantity })),
             shipping: { ...form },
+            delivery,
             ...(redeemToken ? { r: redeemToken } : {}),
           })
         );
@@ -339,6 +343,7 @@ const Checkout: React.FC = () => {
             cartId: cart.id,
             lineItems: cart.lines.map((l) => ({ variantId: l.merchandise.id, qty: l.quantity })),
             shipping: { ...form },
+            delivery,
             ...(redeemToken ? { r: redeemToken } : {}),
           }),
         },
@@ -404,20 +409,55 @@ const Checkout: React.FC = () => {
             <input style={inputStyle} value={form.email} onChange={set('email')} placeholder="email@example.com" inputMode="email" />
           </div>
           <div>
-            <span style={label}>주소</span>
+            <span style={label}>수령 방법</span>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <input style={{ ...inputStyle, maxWidth: '8rem' }} value={form.zip} readOnly placeholder="우편번호" />
-              <button
-                type="button"
-                onClick={searchAddress}
-                style={{ padding: '0 1rem', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap', background: 'var(--color-text)', color: 'var(--color-bg)', border: '1px solid var(--color-text)', cursor: 'pointer', fontFamily: 'inherit' }}
-              >
-                주소 검색
-              </button>
+              {([
+                { key: 'shipping', text: '택배 배송' },
+                { key: 'pickup', text: '매장 픽업 (무료)' },
+              ] as const).map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => setDelivery(opt.key)}
+                  style={{
+                    flex: 1,
+                    padding: '0.7rem 0.5rem',
+                    fontSize: '0.9rem',
+                    fontWeight: delivery === opt.key ? 600 : 400,
+                    fontFamily: 'inherit',
+                    cursor: 'pointer',
+                    background: delivery === opt.key ? 'var(--color-text)' : 'transparent',
+                    color: delivery === opt.key ? 'var(--color-bg)' : 'var(--color-text)',
+                    border: `1px solid ${delivery === opt.key ? 'var(--color-text)' : 'var(--color-line)'}`,
+                  }}
+                >
+                  {opt.text}
+                </button>
+              ))}
             </div>
-            <input style={{ ...inputStyle, marginTop: '0.5rem' }} value={form.address1} readOnly placeholder="도로명 주소 (주소 검색)" />
-            <input style={{ ...inputStyle, marginTop: '0.5rem' }} value={form.address2} onChange={set('address2')} placeholder="상세주소 (동·호수 등)" />
+            {delivery === 'pickup' && (
+              <div style={{ marginTop: '0.6rem', fontSize: '0.82rem', opacity: 0.65, lineHeight: 1.6 }}>
+                결제 후 준비되면 메일로 안내드려요. 방문 수령지: 서울 중구 명동8가길 58, 4층 오브옉트 (매일 11:00–23:30)
+              </div>
+            )}
           </div>
+          {delivery === 'shipping' && (
+            <div>
+              <span style={label}>주소</span>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input style={{ ...inputStyle, maxWidth: '8rem' }} value={form.zip} readOnly placeholder="우편번호" />
+                <button
+                  type="button"
+                  onClick={searchAddress}
+                  style={{ padding: '0 1rem', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap', background: 'var(--color-text)', color: 'var(--color-bg)', border: '1px solid var(--color-text)', cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  주소 검색
+                </button>
+              </div>
+              <input style={{ ...inputStyle, marginTop: '0.5rem' }} value={form.address1} readOnly placeholder="도로명 주소 (주소 검색)" />
+              <input style={{ ...inputStyle, marginTop: '0.5rem' }} value={form.address2} onChange={set('address2')} placeholder="상세주소 (동·호수 등)" />
+            </div>
+          )}
         </div>
 
         {/* Summary */}
@@ -450,7 +490,7 @@ const Checkout: React.FC = () => {
           <div style={{ borderTop: '1px solid var(--color-line)', paddingTop: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.9rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ opacity: 0.6 }}>상품 합계</span><span>{won(subtotal)}</span></div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ opacity: 0.6 }}>배송비</span>
+              <span style={{ opacity: 0.6 }}>{delivery === 'pickup' ? '매장 픽업' : '배송비'}</span>
               <span>{shipping === 0 ? '무료' : won(shipping)}</span>
             </div>
 

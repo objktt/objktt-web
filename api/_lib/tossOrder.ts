@@ -36,6 +36,7 @@ import { verifyRedemption, spendForOrder } from './points.js';
 export interface TossCheckoutPayload {
   lineItems?: unknown;
   shipping?: Record<string, string>;
+  delivery?: string; // 'shipping'(기본) | 'pickup' — 매장 픽업이면 배송비 0
   r?: string; // 적립금 redeem 토큰 (points.ts prepare 단계 발급)
 }
 
@@ -154,7 +155,8 @@ export async function processTossPayment(
   // 5) 권위 금액 재계산 (라이브 가격 + 배송 규칙 + 검증된 적립금 토큰).
   let subtotal = 0;
   for (const item of lineItems) subtotal += (byId.get(item.variantId) as VariantInfo).price * item.qty;
-  const shipFee = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING;
+  const pickup = payload.delivery === 'pickup';
+  const shipFee = pickup ? 0 : subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING;
 
   const redeem = verifyRedemption(typeof payload.r === 'string' ? payload.r : undefined);
   const pointsUsed = redeem ? Math.max(0, Math.min(redeem.p, subtotal)) : 0;
@@ -196,6 +198,7 @@ export async function processTossPayment(
       { key: 'Toss orderId', value: orderId },
       { key: 'Toss paymentKey', value: paymentKey },
       { key: 'PG', value: '토스페이먼츠 (직연동)' },
+      { key: '수령 방법', value: pickup ? '매장 픽업' : '택배 배송' },
       ...(pointsUsed > 0 ? [{ key: '적립금 사용', value: `${pointsUsed.toLocaleString('ko-KR')}원` }] : []),
     ],
     ...(pointsUsed > 0
@@ -209,18 +212,23 @@ export async function processTossPayment(
         }
       : {}),
     lineItems: lineItems.map((l) => ({ variantId: l.variantId, quantity: l.qty })),
-    shippingAddress: {
-      firstName: name || '고객',
-      address1: (shipping.address1 || '').trim() || '-',
-      address2: (shipping.address2 || '').trim() || undefined,
-      zip: (shipping.zip || '').trim() || undefined,
-      city: '서울',
-      countryCode: 'KR',
-      phone,
-    },
+    // 픽업 주문엔 배송지가 없다 — 매장 주소를 넣으면 운영 혼선이 생기므로 생략.
+    ...(pickup
+      ? {}
+      : {
+          shippingAddress: {
+            firstName: name || '고객',
+            address1: (shipping.address1 || '').trim() || '-',
+            address2: (shipping.address2 || '').trim() || undefined,
+            zip: (shipping.zip || '').trim() || undefined,
+            city: '서울',
+            countryCode: 'KR',
+            phone,
+          },
+        }),
     shippingLines: [
       {
-        title: shipFee === 0 ? '무료배송' : '기본배송',
+        title: pickup ? '매장 픽업' : shipFee === 0 ? '무료배송' : '기본배송',
         priceSet: { shopMoney: { amount: String(shipFee), currencyCode: CURRENCY } },
       },
     ],
