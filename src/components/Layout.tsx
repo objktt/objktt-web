@@ -108,8 +108,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             }}
           >
             {language === 'ko'
-              ? '🎉 오브옉트 레코드샵이 오픈했습니다. 온라인 및 오프라인에서 동시 구입 가능합니다. →'
-              : '🎉 Objktt Record Shop is now open — shop online & in store. →'}
+              ? '오브옉트 레코드샵이 오픈했습니다. 온라인 및 오프라인에서 동시 구입 가능합니다. →'
+              : 'Objktt Record Shop is now open. Shop online & in store. →'}
           </NavLink>
           <button
             type="button"
@@ -361,13 +361,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             padding: isMobile ? '2.5rem 1rem 0.5rem' : '2.75rem 1rem 2.75rem',
             borderTop: !isMobile ? '1px solid var(--color-line)' : 'none',
           }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.5, marginBottom: '0.9rem' }}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.6, marginBottom: '0.9rem' }}>
               {t.footer.contactLabel}
             </div>
             <div style={{ fontSize: '0.875rem', lineHeight: 2 }}>
               <a href={`tel:${BUSINESS.phone.replace(/-/g, '')}`} style={{ color: 'inherit', textDecoration: 'none', display: 'block' }}>
                 {BUSINESS.phone}
-                <span style={{ opacity: 0.55, marginLeft: '0.4rem', fontSize: '0.8125rem' }}>
+                <span style={{ opacity: 0.65, marginLeft: '0.4rem', fontSize: '0.8125rem' }}>
                   ({language === 'ko' ? '상담 12:00–18:00' : 'Calls 12:00–18:00'})
                 </span>
               </a>
@@ -378,7 +378,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 {t.footer.kakao}
               </a>
             </div>
-            <div style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.5, margin: '1.75rem 0 0.9rem' }}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.6, margin: '1.75rem 0 0.9rem' }}>
               {t.footer.followLabel}
             </div>
             <div style={{ display: 'flex', gap: '1.1rem', fontSize: '0.875rem' }}>
@@ -393,7 +393,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
              padding: isMobile ? '2.5rem 1rem 1rem' : '2.75rem 1rem 2.75rem',
              borderTop: !isMobile ? '1px solid var(--color-line)' : 'none',
           }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.5, marginBottom: '0.9rem' }}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.6, marginBottom: '0.9rem' }}>
               {t.footer.newsletterLabel}
             </div>
             <div style={{ fontSize: '0.875rem', opacity: 0.6, lineHeight: 1.5, marginBottom: '1rem' }}>
@@ -424,12 +424,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <NavLink to="/points" style={{ color: 'inherit', textDecoration: 'none', opacity: 0.7 }}>{t.footer.links.points}</NavLink>
               <NavLink to="/privacy" style={{ color: 'inherit', textDecoration: 'none', opacity: 0.7 }}>{t.footer.links.privacy}</NavLink>
             </div>
-            <div style={{ fontSize: '0.7rem', opacity: 0.45, lineHeight: 1.8 }}>
+            <div style={{ fontSize: '0.7rem', opacity: 0.6, lineHeight: 1.8 }}>
               {language === 'ko' ? BUSINESS.companyName : BUSINESS.companyNameEn} ({language === 'ko' ? BUSINESS.brandName : BUSINESS.brandNameEn}) · {t.footer.bizRep} {language === 'ko' ? BUSINESS.representative : BUSINESS.representativeEn} · {t.footer.bizReg} {BUSINESS.registrationNumber} · {t.footer.bizMailOrder} {BUSINESS.mailOrderNumber}
               <br />
               {language === 'ko' ? BUSINESS.address : BUSINESS.addressEn} · {t.footer.hoursLabel} {t.footer.hoursValue} · {language === 'ko' ? '전화' : 'Tel'} {BUSINESS.phone} {language === 'ko' ? '(상담 12:00–18:00)' : '(calls 12:00–18:00)'}
             </div>
-            <div style={{ fontSize: '0.7rem', opacity: 0.45 }}>{t.footer.copyright}</div>
+            <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>{t.footer.copyright}</div>
           </div>
         </Grid>
       </footer>

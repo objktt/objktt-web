@@ -17,7 +17,7 @@ const Points: React.FC = () => {
         title="Rewards Policy"
         updated="Effective 2026-06-07"
         seoTitle="Rewards Policy | OBJKTT"
-        seoDescription="OBJKTT (Objktt) reward points — how points are earned, used, and expire."
+        seoDescription="OBJKTT (Objktt) reward points: how points are earned, used, and expire."
         intro={'OBJKTT members earn reward points through purchases and activity, and can use them like cash on future orders. Reward points are a members-only (logged-in) benefit.'}
         infoRows={[
           ['Earn rate', `${pct} of the purchase amount (credited on shipment)`],

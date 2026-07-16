@@ -18,11 +18,11 @@ export const PAGE_SEO = {
   home: {
     path: '/',
     title: {
-      en: 'Objktt Record Coffee & Bar — Myeongdong, Seoul',
-      ko: '오브옉트 레코드 커피 & 바 — 명동',
+      en: 'Objktt Record Coffee & Bar - Myeongdong, Seoul',
+      ko: '오브옉트 레코드 커피 & 바 - 명동',
     },
     description: {
-      en: 'Objktt Record Coffee & Bar in Myeongdong, Seoul. Hand-picked new & used vinyl — shop online with nationwide shipping or in store — over coffee, cocktails, and listening sessions.',
+      en: 'Objktt Record Coffee & Bar in Myeongdong, Seoul. Hand-picked new & used vinyl, shop online with nationwide shipping or in store, over coffee, cocktails, and listening sessions.',
       ko: '명동 4층, 오브옉트 레코드 커피 & 바입니다. 직접 선별한 신보·중고 바이닐을 온라인(전국 배송)과 매장에서 모두 구입할 수 있습니다. 커피와 칵테일, 리스닝 세션이 함께합니다.',
     },
   },
@@ -30,7 +30,7 @@ export const PAGE_SEO = {
     path: '/about',
     title: { en: 'About | Objktt', ko: '소개 | 오브옉트' },
     description: {
-      en: 'We have time, air, and objects. Objktt Record Coffee & Bar in Myeongdong, Seoul, built around vinyl and human connection — curated vinyl available both online (nationwide shipping) and in store.',
+      en: 'We have time, air, and objects. Objktt Record Coffee & Bar in Myeongdong, Seoul, built around vinyl and human connection, curated vinyl available both online (nationwide shipping) and in store.',
       ko: '오브옉트는 명동에 자리한 레코드 커피 & 바입니다. 바이닐과 소리, 그리고 사람 사이의 연결에 집중하며, 큐레이션한 바이닐을 온라인(전국 배송)과 매장에서 모두 구입할 수 있습니다.',
     },
   },
@@ -46,15 +46,15 @@ export const PAGE_SEO = {
     path: '/music',
     title: { en: 'Music | Objktt', ko: '뮤직 | 오브옉트' },
     description: {
-      en: 'The sound of Objktt — curated vinyl, genres, and listening sessions that shape the space.',
-      ko: '오브옉트의 사운드 — 큐레이션된 바이닐과 장르, 그리고 공간을 채우는 리스닝 세션.',
+      en: 'The sound of Objktt, curated vinyl, genres, and listening sessions that shape the space.',
+      ko: '오브옉트의 사운드, 큐레이션된 바이닐과 장르, 그리고 공간을 채우는 리스닝 세션.',
     },
   },
   shop: {
     path: '/shop',
-    title: { en: 'Shop — Vinyl Records | Objktt', ko: '샵 — 바이닐 레코드 | 오브옉트' },
+    title: { en: 'Shop - Vinyl Records | Objktt', ko: '샵 - 바이닐 레코드 | 오브옉트' },
     description: {
-      en: 'Hand-picked new and used vinyl records — jazz, soul, ambient, and more. Curated and shipped from Objktt, Seoul.',
+      en: 'Hand-picked new and used vinyl records, jazz, soul, ambient, and more. Curated and shipped from Objktt, Seoul.',
       ko: '직접 선별한 신보·중고 바이닐 레코드. 재즈, 소울, 앰비언트 등 오브옉트가 큐레이션해 배송합니다.',
     },
   },
@@ -78,16 +78,16 @@ export const PAGE_SEO = {
     path: '/contact',
     title: { en: 'Contact | Objktt', ko: '문의 | 오브옉트' },
     description: {
-      en: 'Get in touch with Objktt — email or KakaoTalk. Myeongdong, Seoul.',
-      ko: '오브옉트에 문의하기 — 이메일 또는 카카오톡. 서울 명동.',
+      en: 'Get in touch with Objktt, email or KakaoTalk. Myeongdong, Seoul.',
+      ko: '오브옉트에 문의하기, 이메일 또는 카카오톡. 서울 명동.',
     },
   },
   notices: {
     path: '/notices',
     title: { en: 'Notices | Objktt', ko: '공지사항 | 오브옉트' },
     description: {
-      en: 'News and announcements from Objktt — new arrivals, store hours, and shipping notices.',
-      ko: '오브옉트의 소식과 공지 — 신보 입고, 영업시간, 배송 안내.',
+      en: 'News and announcements from Objktt, new arrivals, store hours, and shipping notices.',
+      ko: '오브옉트의 소식과 공지, 신보 입고, 영업시간, 배송 안내.',
     },
   },
 } satisfies Record<string, PageSeoEntry>;

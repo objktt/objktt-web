@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useLanguage } from '../contexts/LanguageContext';
 import { usePageSeo } from '../data/pageSeo';
@@ -79,9 +79,9 @@ const menuData: MenuCategory[] = [
   {
     title: 'Bakery',
     items: [
-      { name: 'Levain Cookie', nameKr: '르뱅 쿠키', description: 'Crispy outside, chewy inside — baked fresh daily' },
+      { name: 'Levain Cookie', nameKr: '르뱅 쿠키', description: 'Crispy outside, chewy inside. Baked fresh daily' },
       { name: 'Egg Tart', nameKr: '에그 타르트', description: 'Silky egg custard in a buttery pastry shell' },
-      { name: 'Financier', nameKr: '휘낭시에', description: 'Plain / Lemon / Chocolate — browned butter almond cake' },
+      { name: 'Financier', nameKr: '휘낭시에', description: 'Plain / Lemon / Chocolate. Browned butter almond cake' },
     ],
   },
   {
@@ -94,8 +94,8 @@ const menuData: MenuCategory[] = [
   {
     title: 'Cocktail',
     items: [
-      { name: 'Objktt Cocktail', nameKr: '오브옉트 칵테일', description: 'Vodka, Lemon, Tea, Mint and Spice — our signature', image: imgObjktt },
-      { name: 'We Are Green Cocktail', nameKr: '위아 그린 칵테일', description: 'Gin, Green Grape and Rosemary — our 2nd signature', image: imgGreen },
+      { name: 'Objktt Cocktail', nameKr: '오브옉트 칵테일', description: 'Vodka, Lemon, Tea, Mint and Spice. Our signature', image: imgObjktt },
+      { name: 'We Are Green Cocktail', nameKr: '위아 그린 칵테일', description: 'Gin, Green Grape and Rosemary. Our 2nd signature', image: imgGreen },
       { name: 'Objktt Basil Smash', nameKr: '오브옉트 바질 스매쉬', description: 'Gin, Basil, Lemon and a Tomato Twist', image: imgBasil },
       { name: 'Strawberry Mojito', nameKr: '딸기 모히또', description: 'Strawberry Mojito with Gin or Vodka', image: imgStrawberry },
       { name: 'Negroni', nameKr: '네그로니', description: 'Gin, Campari and Sweet Vermouth with a Cinnamon Stick', image: imgNegroni },
@@ -126,7 +126,7 @@ const menuData: MenuCategory[] = [
   {
     title: 'Beer & Spirits',
     items: [
-      { name: 'Heineken Draft Beer', nameKr: '하이네켄 생맥주', description: 'Premium Dutch lager on draft — smooth and refreshing', image: imgHeineken },
+      { name: 'Heineken Draft Beer', nameKr: '하이네켄 생맥주', description: 'Premium Dutch lager on draft. Smooth and refreshing', image: imgHeineken },
       { name: 'Cafri (Bottled)', nameKr: '카프리 (병맥주)', description: 'Light Korean lager, crisp and easy drinking', image: imgCafri },
       { name: "Hendrick's Gin", nameKr: '헨드릭스 진', description: 'Honey, creamy malt, gentle oak, nutty', image: imgHendricks },
       { name: 'Tequila Sierra Reposado Shot', nameKr: '테킬라 시에라 레포사도 샷', description: 'Powerful peat, smoke, iodine, full-bodied', image: imgTequila },
@@ -142,27 +142,27 @@ const menuData: MenuCategory[] = [
   {
     title: 'Red Wine',
     items: [
-      { name: 'Impero Cabernet Sauvignon', nameKr: '임페로 컬렉션 카베르네 소비뇽', description: '2022 · ITALY · DRY — Rich red fruit aromas with smooth, elegant tannins.', image: imgWineImpero },
-      { name: 'Trambusti Cavalleresco', nameKr: '트람부스티 카발레레스코', description: '2023 · ITALY · DRY — Traditional Italian red with balanced acidity and refined structure.', image: imgWineTrambusti },
-      { name: 'Canada Negra Tempranillo-Monastrell', nameKr: '카나다 네그라 템프라니요-모나스트렐', description: '2024 · SPAIN · DRY — Deep color with concentrated fruit flavors and a hint of spice.', image: imgWineCanadaNegra },
-      { name: 'Bajo Montepulciano', nameKr: '바조 몬테풀치아노', description: '2023 · ITALY · DRY — A supple daily red wine with charming cherry and blackberry notes.', image: imgWineBajo },
-      { name: 'Oscuridad Cabernet Sauvignon', nameKr: '오스쿠리다 카베르네 소비뇽', description: '2024 · SPAIN · DRY — Deep ruby wine with moderate weight and a comfortable finish.', image: imgWineOscuridadCab },
+      { name: 'Impero Cabernet Sauvignon', nameKr: '임페로 컬렉션 카베르네 소비뇽', description: '2022 · ITALY · DRY. Rich red fruit aromas with smooth, elegant tannins.', image: imgWineImpero },
+      { name: 'Trambusti Cavalleresco', nameKr: '트람부스티 카발레레스코', description: '2023 · ITALY · DRY. Traditional Italian red with balanced acidity and refined structure.', image: imgWineTrambusti },
+      { name: 'Canada Negra Tempranillo-Monastrell', nameKr: '카나다 네그라 템프라니요-모나스트렐', description: '2024 · SPAIN · DRY. Deep color with concentrated fruit flavors and a hint of spice.', image: imgWineCanadaNegra },
+      { name: 'Bajo Montepulciano', nameKr: '바조 몬테풀치아노', description: '2023 · ITALY · DRY. A supple daily red wine with charming cherry and blackberry notes.', image: imgWineBajo },
+      { name: 'Oscuridad Cabernet Sauvignon', nameKr: '오스쿠리다 카베르네 소비뇽', description: '2024 · SPAIN · DRY. Deep ruby wine with moderate weight and a comfortable finish.', image: imgWineOscuridadCab },
     ],
   },
   {
     title: 'White Wine',
     items: [
-      { name: 'Pure Est Verdejo', nameKr: '퓨어 에스트 베르데호', description: '2023 · SPAIN · DRY — Delightful acidity with vibrant tropical fruit notes.', image: imgWinePureEst },
-      { name: 'Dona Flor Vinho Verde', nameKr: '도나 플로르 비뉴 베르데', description: 'NV · PORTUGAL · SLIGHTLY SWEET — Lightly carbonated ‘Green Wine’ with a fresh, crisp character.', image: imgWineDonaFlor },
-      { name: 'Oscuridad Chardonnay', nameKr: '오스쿠리다 샤르도네', description: '2025 · SPAIN · DRY — Ripe apple and citrus aromas with a smooth, pleasant mouthfeel.', image: imgWineOscuridadChard },
-      { name: 'Vistamar Brisa Chardonnay', nameKr: '비스타마르 브리사 샤르도네', description: '2024 · CHILE · DRY — Rich fruit flavors with a clean and refreshing finish.', image: imgWineVistamar },
+      { name: 'Pure Est Verdejo', nameKr: '퓨어 에스트 베르데호', description: '2023 · SPAIN · DRY. Delightful acidity with vibrant tropical fruit notes.', image: imgWinePureEst },
+      { name: 'Dona Flor Vinho Verde', nameKr: '도나 플로르 비뉴 베르데', description: 'NV · PORTUGAL · SLIGHTLY SWEET. Lightly carbonated ‘Green Wine’ with a fresh, crisp character.', image: imgWineDonaFlor },
+      { name: 'Oscuridad Chardonnay', nameKr: '오스쿠리다 샤르도네', description: '2025 · SPAIN · DRY. Ripe apple and citrus aromas with a smooth, pleasant mouthfeel.', image: imgWineOscuridadChard },
+      { name: 'Vistamar Brisa Chardonnay', nameKr: '비스타마르 브리사 샤르도네', description: '2024 · CHILE · DRY. Rich fruit flavors with a clean and refreshing finish.', image: imgWineVistamar },
     ],
   },
   {
     title: 'Champagne & Sparkling Wine',
     items: [
-      { name: 'Moët & Chandon Impérial 375ml', nameKr: '모엣 샹동 임페리얼', description: 'FRANCE · DRY — The world’s most loved champagne, known for its bright fruitiness.', image: imgWineMoet },
-      { name: 'Muchas Manos Brut', nameKr: '무차스 마노스 브뤼', description: 'NV · ITALY · DRY — Delicate bubbles and refreshing aroma for a festive atmosphere.', image: imgWineMuchasManos },
+      { name: 'Moët & Chandon Impérial 375ml', nameKr: '모엣 샹동 임페리얼', description: 'FRANCE · DRY. The world’s most loved champagne, known for its bright fruitiness.', image: imgWineMoet },
+      { name: 'Muchas Manos Brut', nameKr: '무차스 마노스 브뤼', description: 'NV · ITALY · DRY. Delicate bubbles and refreshing aroma for a festive atmosphere.', image: imgWineMuchasManos },
     ],
   },
   {
@@ -184,14 +184,21 @@ const Menu: React.FC = () => {
   const { isMobile } = useBreakpoint();
   const { language } = useLanguage();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  // The cursor-follow preview positions itself via direct DOM writes (a
+  // transform on the wrapper ref), NOT React state — mousemove-into-state
+  // re-rendered the whole page on every pointer frame.
+  const followRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isMobile) return;
     const handleMouseMove = (e: MouseEvent) => {
-      setMousePos({ x: e.clientX, y: e.clientY });
+      const el = followRef.current;
+      if (el) {
+        el.style.transform = `translate(${e.clientX + 24}px, ${e.clientY - 100}px)`;
+        el.style.visibility = 'visible';
+      }
     };
-    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, [isMobile]);
 
@@ -205,13 +212,15 @@ const Menu: React.FC = () => {
 
   const hoveredImage = hoveredItem ? getHoveredImage() : undefined;
 
-
-  const categoryLabel: React.CSSProperties = {
-    fontSize: '0.6875rem',
-    fontWeight: 500,
-    letterSpacing: '0.12em',
-    textTransform: 'uppercase',
-    opacity: 0.4,
+  // Real headline per category (the previous uppercase micro-label repeated 11
+  // times down the page); one hairline above each category, none between rows.
+  const categoryTitle: React.CSSProperties = {
+    fontSize: isMobile ? '1.35rem' : '1.6rem',
+    fontWeight: 600,
+    letterSpacing: '-0.02em',
+    margin: 0,
+    paddingTop: '1.5rem',
+    borderTop: '1px solid var(--color-line)',
     marginBottom: '1.5rem',
   };
 
@@ -246,70 +255,106 @@ const Menu: React.FC = () => {
 
         {/* Menu Categories */}
         <div style={{ padding: isMobile ? '0 1.5rem' : '0 4rem' }}>
-          {menuData.map((category) => (
-            <div key={category.title} style={{ marginBottom: isMobile ? '3rem' : '4rem' }}>
-              <div style={categoryLabel}>{category.title}</div>
+          {menuData.map((category) => {
+            const hasImages = category.items.some((i) => i.image);
+            return (
+            <div key={category.title} style={{ marginBottom: isMobile ? '3rem' : '4.5rem' }}>
+              <h3 style={categoryTitle}>{category.title}</h3>
 
-              {category.items.map((item) => (
-                <div
-                  key={item.name}
-                  style={{
-                    padding: '0.75rem 0',
-                    borderBottom: '1px solid var(--color-line)',
-                    cursor: 'default',
-                    transition: 'opacity 0.2s ease',
-                    opacity: hoveredItem && hoveredItem !== item.name ? 0.3 : 1,
-                  }}
-                  onMouseEnter={() => setHoveredItem(item.name)}
-                  onMouseLeave={() => setHoveredItem(null)}
-                >
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: isMobile ? 'flex-start' : 'baseline',
-                    flexDirection: isMobile ? 'column' : 'row',
-                    gap: isMobile ? '0.125rem' : '1rem',
-                  }}>
-                    <span style={{ fontSize: '1rem', fontWeight: 500 }}>
-                      {item.name}
-                    </span>
-                    {item.nameKr && (
-                      <span style={{ fontSize: '0.8125rem', opacity: 0.4, flexShrink: 0 }}>
-                        {item.nameKr}
-                      </span>
-                    )}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
+                  columnGap: '4rem',
+                  rowGap: isMobile ? '1.25rem' : '1.5rem',
+                }}
+              >
+                {category.items.map((item) => (
+                  <div
+                    key={item.name}
+                    style={{
+                      display: 'flex',
+                      gap: '1rem',
+                      alignItems: 'flex-start',
+                      cursor: 'default',
+                      transition: 'opacity 0.2s ease',
+                      opacity: hoveredItem && hoveredItem !== item.name ? 0.35 : 1,
+                    }}
+                    onMouseEnter={() => setHoveredItem(item.name)}
+                    onMouseLeave={() => setHoveredItem(null)}
+                  >
+                    {/* Inline thumbnail — visible on every device (the photos
+                        used to exist only inside the desktop hover preview).
+                        Imageless items in a photo category get a spacer so
+                        every name in the column shares the same left edge. */}
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        loading="lazy"
+                        style={{
+                          width: '56px',
+                          height: '56px',
+                          objectFit: 'cover',
+                          flexShrink: 0,
+                          backgroundColor: 'var(--color-line)',
+                        }}
+                      />
+                    ) : hasImages ? (
+                      <div style={{ width: '56px', flexShrink: 0 }} aria-hidden />
+                    ) : null}
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'baseline',
+                        gap: '1rem',
+                      }}>
+                        <span style={{ fontSize: '1rem', fontWeight: 500 }}>
+                          {item.name}
+                        </span>
+                        {item.nameKr && (
+                          <span style={{ fontSize: '0.8125rem', opacity: 0.6, flexShrink: 0, textAlign: 'right' }}>
+                            {item.nameKr}
+                          </span>
+                        )}
+                      </div>
+                      {item.description && (
+                        <p style={{
+                          fontSize: '0.8125rem',
+                          opacity: 0.65,
+                          margin: '0.25rem 0 0',
+                          lineHeight: 1.5,
+                          whiteSpace: 'pre-line',
+                        }}>
+                          {item.description}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  {item.description && (
-                    <p style={{
-                      fontSize: '0.8125rem',
-                      opacity: 0.5,
-                      marginTop: '0.25rem',
-                      lineHeight: 1.5,
-                      whiteSpace: 'pre-line',
-                    }}>
-                      {item.description}
-                    </p>
-                  )}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
-      {/* Cursor-following image (desktop only) */}
+      {/* Cursor-following enlarged preview (desktop only). Position is driven by
+          direct transform writes in the mousemove handler above. */}
       {!isMobile && hoveredItem && hoveredImage && (
         <div
+          ref={followRef}
           style={{
             position: 'fixed',
-            left: mousePos.x + 20,
-            top: mousePos.y - 100,
+            left: 0,
+            top: 0,
             width: '320px',
             height: '400px',
             pointerEvents: 'none',
             zIndex: 999,
             overflow: 'hidden',
-            transition: 'opacity 0.15s ease',
+            visibility: 'hidden', // shown after the first mousemove positions it
           }}
         >
           <img

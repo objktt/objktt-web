@@ -1,14 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import hero1 from '../assets/img/objktt/DSC00876.JPEG';
-import hero2 from '../assets/img/objktt/DSC00885.JPEG';
-import hero3 from '../assets/img/objktt/DSC00908.JPEG';
-import hero4 from '../assets/img/objktt/DSC00915.JPEG';
-import hero5 from '../assets/img/objktt/DSC00926.JPEG';
+import hero1 from '../assets/img/objktt/DSC00876.webp';
+import hero2 from '../assets/img/objktt/DSC00885.webp';
+import hero3 from '../assets/img/objktt/DSC00908.webp';
+import hero4 from '../assets/img/objktt/DSC00915.webp';
+import hero5 from '../assets/img/objktt/DSC00926.webp';
 import { getProductsByCategory } from '../lib/getProducts';
 import { REVIEWS, GOOGLE_RATING, GOOGLE_REVIEW_COUNT, GOOGLE_PLACE_URL } from '../data/reviews';
 import { BUSINESS } from '../data/business';
 import { usePageSeo } from '../data/pageSeo';
+import Reveal from '../components/Reveal';
 
 // Atmosphere photos (bundled, served from Vercel). Source: Google Drive folder — see src/data/spaceImages.ts.
 const SPACE_IMAGES = Object.entries(
@@ -197,6 +198,10 @@ const Home: React.FC = () => {
                   key={i}
                   src={src}
                   alt="Objktt"
+                  // First slide is the LCP element — fetch it ahead of everything;
+                  // later slides can trickle in during the 4.5s crossfade window.
+                  fetchPriority={i === 0 ? 'high' : 'low'}
+                  decoding={i === 0 ? 'sync' : 'async'}
                   style={{
                     position: 'absolute',
                     inset: 0,
@@ -209,11 +214,13 @@ const Home: React.FC = () => {
                   }}
                 />
               ))}
-              {/* Scrim (top → down) for headline legibility */}
+              {/* Scrim for headline + caption legibility. The headline spans most
+                  of the frame, so keep a soft base tint through the middle and
+                  re-darken the bottom for the caption. */}
               <div style={{
                 position: 'absolute',
                 inset: 0,
-                background: 'linear-gradient(to bottom, rgba(0,0,0,0.5), rgba(0,0,0,0) 60%)',
+                background: 'linear-gradient(to bottom, rgba(0,0,0,0.55), rgba(0,0,0,0.18) 55%, rgba(0,0,0,0.38) 100%)',
                 pointerEvents: 'none',
               }} />
               {/* Blue fill — the converging circle becomes the brand blue dot */}
@@ -266,7 +273,9 @@ const Home: React.FC = () => {
               fontWeight: 600,
               lineHeight: 0.98,
               letterSpacing: '-0.03em',
-              fontSize: isMobile ? '5.5rem' : '13rem',
+              // vw-based so the longest word ("Universe.") never clips the frame;
+              // fixed rem sizes overflowed at 390px mobile and ~1024px desktop.
+              fontSize: isMobile ? 'clamp(2.75rem, 15.5vw, 5.5rem)' : 'clamp(6rem, 13vw, 13rem)',
               pointerEvents: 'none',
             }}>
               {HERO_WORDS.map((w, i) => {
@@ -325,11 +334,11 @@ const Home: React.FC = () => {
               justifyContent: 'space-between',
               alignItems: 'center',
             }}>
-              <span style={{ opacity: 0.5 }}>{t.home.stickyShop}</span>
+              <span style={{ opacity: 0.65 }}>{t.home.stickyShop}</span>
               <Link to="/shop" style={{
                 fontSize: '0.75rem',
                 fontWeight: 500,
-                opacity: 0.5,
+                opacity: 0.65,
                 letterSpacing: '0.05em',
                 transition: 'opacity 0.2s ease',
               }}
@@ -344,16 +353,18 @@ const Home: React.FC = () => {
           <div style={{
             padding: `${isMobile ? '3rem' : '5rem'} ${isMobile ? '1.5rem' : '4rem'} ${isMobile ? '2rem' : '3rem'}`,
           }}>
-            <h2 style={{
-              fontSize: isMobile ? '10vw' : 'clamp(3rem, 6vw, 6.5rem)',
-              fontWeight: 500,
-              lineHeight: 0.95,
-              letterSpacing: isMobile ? '-0.03em' : '-0.04em',
-              margin: 0,
-              whiteSpace: 'pre-line',
-            }}>
-              {t.home.shopTitle}
-            </h2>
+            <Reveal>
+              <h2 style={{
+                fontSize: isMobile ? '10vw' : 'clamp(3rem, 6vw, 6.5rem)',
+                fontWeight: 500,
+                lineHeight: 0.95,
+                letterSpacing: isMobile ? '-0.03em' : '-0.04em',
+                margin: 0,
+                whiteSpace: 'pre-line',
+              }}>
+                {t.home.shopTitle}
+              </h2>
+            </Reveal>
           </div>
 
           <div style={{
@@ -363,13 +374,13 @@ const Home: React.FC = () => {
             columnGap: isMobile ? '1.25rem' : '2.5rem',
             rowGap: isMobile ? '2.5rem' : '3.75rem',
           }}>
-            {shopProducts.map((p) => {
+            {shopProducts.map((p, cardIndex) => {
               const variant = p.variants[0];
               const soldOut = variant ? !variant.availableForSale : false;
               const isOffline = p.salesChannel === 'offline';
               return (
+                <Reveal key={p.id} delay={(cardIndex % (isMobile ? 2 : 4)) * 0.06}>
                 <Link
-                  key={p.id}
                   to={`/shop/${p.handle}`}
                   onMouseEnter={() => setActiveItem(p.id)}
                   onMouseLeave={() => setActiveItem(null)}
@@ -466,6 +477,7 @@ const Home: React.FC = () => {
                     )}
                   </div>
                 </Link>
+                </Reveal>
               );
             })}
           </div>
@@ -477,7 +489,7 @@ const Home: React.FC = () => {
       {/* ─── Atmosphere Carousel ─── */}
       <section>
         <div style={stickyBar}>
-          <div style={stickyInner}><span style={{ opacity: 0.5 }}>{t.home.stickyAtmosphere}</span></div>
+          <div style={stickyInner}><span style={{ opacity: 0.65 }}>{t.home.stickyAtmosphere}</span></div>
         </div>
 
         <div style={{
@@ -487,16 +499,18 @@ const Home: React.FC = () => {
           alignItems: 'flex-end',
           gap: '1rem',
         }}>
-          <h2 style={{
-            fontSize: isMobile ? '10vw' : 'clamp(3rem, 6vw, 6.5rem)',
-            fontWeight: 500,
-            lineHeight: 0.95,
-            letterSpacing: isMobile ? '-0.03em' : '-0.04em',
-            margin: 0,
-            whiteSpace: 'pre-line',
-          }}>
-            {t.home.atmosphereTitle}
-          </h2>
+          <Reveal>
+            <h2 style={{
+              fontSize: isMobile ? '10vw' : 'clamp(3rem, 6vw, 6.5rem)',
+              fontWeight: 500,
+              lineHeight: 0.95,
+              letterSpacing: isMobile ? '-0.03em' : '-0.04em',
+              margin: 0,
+              whiteSpace: 'pre-line',
+            }}>
+              {t.home.atmosphereTitle}
+            </h2>
+          </Reveal>
           {!isMobile && (
             <div style={{ display: 'flex', gap: '0.75rem', flexShrink: 0, paddingBottom: '0.6rem' }}>
               {[-1, 1].map((dir) => (
@@ -577,25 +591,21 @@ const Home: React.FC = () => {
       {/* ─── Map Section ─── */}
       <section>
         <div style={stickyBar}>
-          <div style={stickyInner}><span style={{ opacity: 0.5 }}>{t.home.stickyLocation}</span></div>
+          <div style={stickyInner}><span style={{ opacity: 0.65 }}>{t.home.stickyLocation}</span></div>
         </div>
 
-        {/* Section Title */}
+        {/* Section Title — headline with the intro stacked directly below it
+            (the paragraph used to float in the top-right corner of the row). */}
         <div style={{
           padding: `${isMobile ? '3rem' : '5rem'} ${isMobile ? '1.5rem' : '4rem'} ${isMobile ? '2rem' : '3rem'}`,
-          display: 'flex',
-          flexDirection: isMobile ? 'column' : 'row',
-          gap: isMobile ? '1.5rem' : '2rem',
-          alignItems: 'flex-end',
         }}>
+          <Reveal>
           <h2 style={{
             fontSize: isMobile ? '10vw' : 'clamp(3rem, 6vw, 6.5rem)',
             fontWeight: 500,
             lineHeight: 0.95,
             letterSpacing: isMobile ? '-0.03em' : '-0.04em',
             margin: 0,
-            width: isMobile ? '100%' : '50%',
-            flexShrink: 0,
           }}>
             {t.home.locationTitle.split('\n').map((line, i) => (
               <span key={i}>{line}{i < t.home.locationTitle.split('\n').length - 1 && <br />}</span>
@@ -603,9 +613,10 @@ const Home: React.FC = () => {
           </h2>
           <p style={{
             fontSize: '0.9375rem',
-            lineHeight: 1.3,
-            opacity: 0.5,
-            margin: 0,
+            lineHeight: 1.5,
+            opacity: 0.7,
+            margin: '1.5rem 0 0',
+            maxWidth: '38rem',
           }}>
             {t.home.locationDesc.split('\n').map((line, i) => (
               <React.Fragment key={i}>
@@ -614,6 +625,7 @@ const Home: React.FC = () => {
               </React.Fragment>
             ))}
           </p>
+          </Reveal>
         </div>
 
         <div style={{
@@ -644,7 +656,7 @@ const Home: React.FC = () => {
               fontWeight: 500,
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
-              opacity: 0.4,
+              opacity: 0.6,
               marginBottom: '0.75rem',
             }}>
               Public Transit
@@ -666,7 +678,7 @@ const Home: React.FC = () => {
               fontWeight: 500,
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
-              opacity: 0.4,
+              opacity: 0.6,
               marginBottom: '0.75rem',
             }}>
               Parking
@@ -687,7 +699,7 @@ const Home: React.FC = () => {
       {/* ─── Reviews Section ─── */}
       <section>
         <div style={stickyBar}>
-          <div style={stickyInner}><span style={{ opacity: 0.5 }}>{t.home.stickyReviews}</span></div>
+          <div style={stickyInner}><span style={{ opacity: 0.65 }}>{t.home.stickyReviews}</span></div>
         </div>
 
         {/* Title + Google rating */}
@@ -699,17 +711,19 @@ const Home: React.FC = () => {
           alignItems: isMobile ? 'flex-start' : 'flex-end',
           justifyContent: 'space-between',
         }}>
-          <h2 style={{
-            fontSize: isMobile ? '10vw' : 'clamp(3rem, 6vw, 6.5rem)',
-            fontWeight: 500,
-            lineHeight: 0.95,
-            letterSpacing: isMobile ? '-0.03em' : '-0.04em',
-            margin: 0,
-          }}>
-            {t.home.reviewsTitle.split('\n').map((line, i) => (
-              <span key={i}>{line}{i < t.home.reviewsTitle.split('\n').length - 1 && <br />}</span>
-            ))}
-          </h2>
+          <Reveal>
+            <h2 style={{
+              fontSize: isMobile ? '10vw' : 'clamp(3rem, 6vw, 6.5rem)',
+              fontWeight: 500,
+              lineHeight: 0.95,
+              letterSpacing: isMobile ? '-0.03em' : '-0.04em',
+              margin: 0,
+            }}>
+              {t.home.reviewsTitle.split('\n').map((line, i) => (
+                <span key={i}>{line}{i < t.home.reviewsTitle.split('\n').length - 1 && <br />}</span>
+              ))}
+            </h2>
+          </Reveal>
           <div style={{
             display: 'flex',
             flexDirection: 'column',
@@ -720,7 +734,7 @@ const Home: React.FC = () => {
               <span style={{ fontSize: '2rem', fontWeight: 600, lineHeight: 1 }}>{ratingDisplay.toFixed(1)}</span>
               <span style={{ color: 'var(--color-accent)', fontSize: '1.05rem', letterSpacing: '0.1em' }}>★★★★★</span>
             </div>
-            <div style={{ fontSize: '0.8rem', opacity: 0.5 }}>{t.home.reviewsCount} · {countDisplay}</div>
+            <div style={{ fontSize: '0.8rem', opacity: 0.6 }}>{t.home.reviewsCount} · {countDisplay}</div>
             <a
               href={GOOGLE_PLACE_URL}
               target="_blank"
@@ -740,12 +754,15 @@ const Home: React.FC = () => {
           gap: isMobile ? '1rem' : '1.5rem',
         }}>
           {reviewCards.map((r, i) => (
-            <div key={i} style={{
+            <Reveal key={i} delay={i * 0.08}>
+            <div style={{
               border: '1px solid var(--color-line)',
               padding: isMobile ? '1.5rem' : '2rem',
               display: 'flex',
               flexDirection: 'column',
               gap: '1rem',
+              height: '100%',
+              boxSizing: 'border-box',
             }}>
               <div style={{ color: 'var(--color-accent)', letterSpacing: '0.1em', fontSize: '0.95rem' }}>
                 {'★'.repeat(r.rating)}
@@ -755,9 +772,10 @@ const Home: React.FC = () => {
               </p>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '1rem', fontSize: '0.8rem' }}>
                 <span style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{r.author}</span>
-                <span style={{ opacity: 0.45, flexShrink: 0 }}>{r.time}</span>
+                <span style={{ opacity: 0.6, flexShrink: 0 }}>{r.time}</span>
               </div>
             </div>
+            </Reveal>
           ))}
         </div>
       </section>
@@ -765,7 +783,7 @@ const Home: React.FC = () => {
       {/* ─── Contact Section ─── */}
       <section style={{ position: 'relative' }}>
         <div style={stickyBar}>
-          <div style={stickyInner}><span style={{ opacity: 0.5 }}>{t.home.stickyContact}</span></div>
+          <div style={stickyInner}><span style={{ opacity: 0.65 }}>{t.home.stickyContact}</span></div>
         </div>
 
         {/* Section Title */}
@@ -804,7 +822,7 @@ const Home: React.FC = () => {
               fontWeight: 500,
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
-              opacity: 0.4,
+              opacity: 0.6,
               marginBottom: '0.75rem',
             }}>
               {t.home.contactLabel}
@@ -918,7 +936,7 @@ const Home: React.FC = () => {
               fontWeight: 500,
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
-              opacity: 0.4,
+              opacity: 0.6,
               marginBottom: '0.75rem',
             }}>
               Email
@@ -932,7 +950,7 @@ const Home: React.FC = () => {
               fontWeight: 500,
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
-              opacity: 0.4,
+              opacity: 0.6,
               margin: '1.75rem 0 0.75rem',
             }}>
               {t.home.kakaoLabel}

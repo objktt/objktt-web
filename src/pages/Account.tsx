@@ -100,7 +100,7 @@ const AddressSection: React.FC<{ customer: Customer; onSaved: () => Promise<void
   return (
     <section style={{ borderTop: '1px solid var(--color-line)', padding: '1.5rem 0' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 1rem' }}>
-        <h2 style={{ fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.5, margin: 0 }}>배송 주소록</h2>
+        <h2 style={{ fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.6, margin: 0 }}>배송 주소록</h2>
         {editing === null && (
           <button type="button" onClick={startAdd} style={{ ...linkBtn, opacity: 0.8, fontSize: '0.85rem' }}>+ 주소 추가</button>
         )}
@@ -277,7 +277,7 @@ const Account: React.FC = () => {
     ];
 
     const card: React.CSSProperties = { border: '1px solid var(--color-line)', padding: '1.25rem 1rem', textAlign: 'center' };
-    const sectionH2: React.CSSProperties = { fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.5, margin: '0 0 1.25rem' };
+    const sectionH2: React.CSSProperties = { fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.6, margin: '0 0 1.25rem' };
 
     return (
       <div style={{ padding: pad }}>
@@ -300,7 +300,7 @@ const Account: React.FC = () => {
             <nav style={{ position: 'sticky', top: '6rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               {navGroups.map((g) => (
                 <div key={g.title}>
-                  <div style={{ fontSize: '0.7rem', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.45, marginBottom: '0.75rem' }}>{g.title}</div>
+                  <div style={{ fontSize: '0.7rem', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.6, marginBottom: '0.75rem' }}>{g.title}</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                     {g.items.map((it) => (
                       <button key={it.label} type="button" onClick={() => (it.onClick ? it.onClick() : it.id && go(it.id))}

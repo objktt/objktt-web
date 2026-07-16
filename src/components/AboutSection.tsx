@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useLanguage } from '../contexts/LanguageContext';
 
-import img1 from '../assets/img/objktt/DSC00876.JPEG';
-import img2 from '../assets/img/objktt/DSC00885.JPEG';
-import img3 from '../assets/img/objktt/DSC00908.JPEG';
-import img4 from '../assets/img/objktt/DSC00915.JPEG';
-import img5 from '../assets/img/objktt/DSC00926.JPEG';
+import img1 from '../assets/img/objktt/DSC00876.webp';
+import img2 from '../assets/img/objktt/DSC00885.webp';
+import img3 from '../assets/img/objktt/DSC00908.webp';
+import img4 from '../assets/img/objktt/DSC00915.webp';
+import img5 from '../assets/img/objktt/DSC00926.webp';
 
 const images = [img1, img2, img3, img4, img5];
 

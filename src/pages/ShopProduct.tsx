@@ -268,7 +268,7 @@ const ShopProduct: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={{ padding: pad, opacity: 0.5 }}>
+      <div style={{ padding: pad, opacity: 0.6 }}>
         Loading…
       </div>
     );
@@ -465,7 +465,7 @@ const ShopProduct: React.FC = () => {
             <p
               style={{
                 fontSize: '0.7rem',
-                opacity: 0.45,
+                opacity: 0.6,
                 lineHeight: 1.5,
                 marginTop: '0.75rem',
               }}
@@ -540,7 +540,7 @@ const ShopProduct: React.FC = () => {
                 borderTop: '1px solid var(--color-line)',
               }}
             >
-              <div style={{ fontSize: '0.7rem', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.5, marginBottom: '0.5rem' }}>
+              <div style={{ fontSize: '0.7rem', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.6, marginBottom: '0.5rem' }}>
                 Staff Pick
               </div>
               <div style={{ fontSize: '0.92rem', lineHeight: 1.6, opacity: 0.85, whiteSpace: 'pre-line' }}>
@@ -557,7 +557,7 @@ const ShopProduct: React.FC = () => {
                 borderTop: '1px solid var(--color-line)',
               }}
             >
-              <div style={{ fontSize: '0.7rem', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.5, marginBottom: '0.5rem' }}>
+              <div style={{ fontSize: '0.7rem', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.6, marginBottom: '0.5rem' }}>
                 특이사항
               </div>
               <div style={{ fontSize: '0.92rem', lineHeight: 1.6, opacity: 0.85, whiteSpace: 'pre-line' }}>
@@ -574,7 +574,7 @@ const ShopProduct: React.FC = () => {
                   fontSize: '0.75rem',
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase',
-                  opacity: 0.5,
+                  opacity: 0.6,
                   marginBottom: '0.85rem',
                 }}
               >
@@ -746,7 +746,7 @@ const ShopProduct: React.FC = () => {
                   fontSize: '0.75rem',
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase',
-                  opacity: 0.5,
+                  opacity: 0.6,
                   marginBottom: '0.85rem',
                 }}
               >
@@ -792,7 +792,7 @@ const ShopProduct: React.FC = () => {
                           cursor: vid ? 'pointer' : 'default',
                         }}
                       >
-                        <span style={{ opacity: 0.4, minWidth: '1.4rem', fontVariantNumeric: 'tabular-nums' }}>
+                        <span style={{ opacity: 0.5, minWidth: '1.4rem', fontVariantNumeric: 'tabular-nums' }}>
                           {i + 1}
                         </span>
                         <span style={{ flex: 1 }}>{t.title}</span>
@@ -915,7 +915,7 @@ const RelatedCarousel: React.FC<{ items: VinylRecord[]; isMobile: boolean }> = (
             fontSize: '0.75rem',
             letterSpacing: '0.1em',
             textTransform: 'uppercase',
-            opacity: 0.5,
+            opacity: 0.6,
           }}
         >
           You may also like
@@ -1164,7 +1164,7 @@ const ConditionCard: React.FC<{ label: string; value: string | null | undefined 
           fontSize: '0.7rem',
           letterSpacing: '0.12em',
           textTransform: 'uppercase',
-          opacity: 0.45,
+          opacity: 0.6,
         }}
       >
         {label}
@@ -1209,7 +1209,7 @@ const SpecRow: React.FC<{ label: string; value: string | null | undefined }> = (
           fontSize: '0.75rem',
           letterSpacing: '0.1em',
           textTransform: 'uppercase',
-          opacity: 0.5,
+          opacity: 0.6,
           paddingTop: '0.1rem',
         }}
       >

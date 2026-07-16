@@ -6,6 +6,7 @@ import type { ShopCategory } from '../lib/getProducts';
 import { isShopifyConfigured } from '../lib/shopify';
 import type { VinylRecord } from '../types/shopify';
 import { usePageSeo } from '../data/pageSeo';
+import Reveal from '../components/Reveal';
 
 const formatKRW = (amount: string) => {
   const n = Number(amount);
@@ -458,7 +459,7 @@ const Shop: React.FC = () => {
                 <button
                   type="button"
                   onClick={clearAllFilters}
-                  style={{ fontSize: '0.72rem', opacity: 0.55, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text)', fontFamily: 'inherit', textDecoration: 'underline', textUnderlineOffset: '2px', padding: 0 }}
+                  style={{ fontSize: '0.72rem', opacity: 0.65, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text)', fontFamily: 'inherit', textDecoration: 'underline', textUnderlineOffset: '2px', padding: 0 }}
                 >
                   Clear all
                 </button>
@@ -573,7 +574,7 @@ const Shop: React.FC = () => {
               <button
                 type="button"
                 onClick={clearAllFilters}
-                style={{ fontSize: '0.75rem', letterSpacing: '0.05em', opacity: 0.55, background: 'none', border: 'none', padding: '0.4rem 0.6rem', cursor: 'pointer', color: 'var(--color-text)', fontFamily: 'inherit', textDecoration: 'underline', textUnderlineOffset: '2px' }}
+                style={{ fontSize: '0.75rem', letterSpacing: '0.05em', opacity: 0.65, background: 'none', border: 'none', padding: '0.4rem 0.6rem', cursor: 'pointer', color: 'var(--color-text)', fontFamily: 'inherit', textDecoration: 'underline', textUnderlineOffset: '2px' }}
               >
                 Clear all
               </button>
@@ -582,8 +583,8 @@ const Shop: React.FC = () => {
 
           {/* Dev mock badge */}
           {!isShopifyConfigured && (
-            <div style={{ padding: isMobile ? '0 1.5rem 1.5rem' : '0 0 1.5rem', fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.45 }}>
-              Showing mock data — set token in <code>.env.local</code> to load real products.
+            <div style={{ padding: isMobile ? '0 1.5rem 1.5rem' : '0 0 1.5rem', fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.6 }}>
+              Showing mock data. Set token in <code>.env.local</code> to load real products.
             </div>
           )}
 
@@ -605,13 +606,14 @@ const Shop: React.FC = () => {
                 gap: isMobile ? '1.25rem' : '2rem',
               }}
             >
-              {filtered.map((p) => (
-                <RecordCard
-                  key={p.id}
-                  record={p}
-                  hovered={hoveredId === p.id}
-                  onHover={(in_) => setHoveredId(in_ ? p.id : null)}
-                />
+              {filtered.map((p, i) => (
+                <Reveal key={p.id} delay={(i % 4) * 0.05}>
+                  <RecordCard
+                    record={p}
+                    hovered={hoveredId === p.id}
+                    onHover={(in_) => setHoveredId(in_ ? p.id : null)}
+                  />
+                </Reveal>
               ))}
             </div>
           )}
@@ -722,7 +724,7 @@ const FeaturedCarousel: React.FC<{ items: VinylRecord[]; isMobile: boolean }> = 
           marginBottom: '1.25rem',
         }}
       >
-        <div style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.5 }}>
+        <div style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.6 }}>
           Featured
         </div>
         {!isMobile && !(atStart && atEnd) && (
@@ -843,7 +845,7 @@ const FeaturedCard: React.FC<{ record: VinylRecord; isMobile: boolean }> = ({ re
       {/* Meta — artist + title only, no price */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
         {record.artist && (
-          <div style={{ fontSize: '0.8rem', letterSpacing: '0.04em', opacity: 0.55, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: '0.8rem', letterSpacing: '0.04em', opacity: 0.65, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {record.artist}
           </div>
         )}
@@ -1239,7 +1241,7 @@ const FilterList: React.FC<{
         fontSize: '0.7rem',
         letterSpacing: '0.18em',
         textTransform: 'uppercase',
-        opacity: 0.5,
+        opacity: 0.6,
         marginBottom: '0.6rem',
       }}
     >
@@ -1293,7 +1295,7 @@ const FilterRow: React.FC<{ label: string; count: number; active: boolean; onCli
         <span style={{ width: '0.5rem', flexShrink: 0, opacity: 0.8 }}>{active ? '›' : ''}</span>
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
       </span>
-      <span style={{ fontSize: '0.72rem', opacity: 0.4, flexShrink: 0 }}>{count}</span>
+      <span style={{ fontSize: '0.72rem', opacity: 0.55, flexShrink: 0 }}>{count}</span>
     </button>
   </li>
 );
@@ -1317,7 +1319,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
         fontSize: '0.7rem',
         letterSpacing: '0.18em',
         textTransform: 'uppercase',
-        opacity: 0.5,
+        opacity: 0.6,
         marginBottom: '0.85rem',
       }}
     >
