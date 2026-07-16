@@ -140,7 +140,7 @@ const Checkout: React.FC = () => {
       return;
     }
     try {
-      const r = await fetch('/api/checkout/toss-confirm', {
+      const r = await fetch('/api/checkout/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ paymentKey, orderId: tossOrderId, payload: JSON.parse(raw) }),
