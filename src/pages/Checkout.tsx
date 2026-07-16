@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import * as PortOne from '@portone/browser-sdk/v2';
+import { loadTossPayments, ANONYMOUS } from '@tosspayments/tosspayments-sdk';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useSeo } from '../lib/seo';
 import { FREE_SHIPPING_THRESHOLD, won } from '../lib/shipping';
-import { PORTONE_STORE_ID, PORTONE_CHANNEL_KEY } from '../lib/payment';
+import { PORTONE_STORE_ID, PORTONE_CHANNEL_KEY, PAYMENT_PROVIDER, TOSS_CLIENT_KEY } from '../lib/payment';
 import { getStoredToken } from '../lib/account';
 import { REWARDS } from '../data/rewards';
 
@@ -115,7 +116,7 @@ const Checkout: React.FC = () => {
         setStatus('done');
       } else if (data.reason === 'sold_out') {
         setStatus('soldout');
-        setMessage('죄송합니다 — 결제 중 해당 음반이 판매되었습니다. 결제는 자동 환불됩니다.');
+        setMessage('죄송합니다. 결제 중 해당 음반이 판매되었습니다. 결제는 자동 환불됩니다.');
       } else {
         setStatus('error');
         setMessage(data.error || '주문 처리 중 문제가 발생했습니다. 결제 내역은 고객센터로 문의해 주세요.');
@@ -126,15 +127,55 @@ const Checkout: React.FC = () => {
     }
   };
 
-  // Redirect-return flow: KG이니시스/모바일 결제는 전체 페이지 리다이렉트로
-  // /checkout?paymentId=...&code=...&message=... 로 돌아온다. 이때 requestPayment
-  // 프로미스는 사라지므로, URL 파라미터를 읽어 서버 확정을 직접 호출한다. (이게
-  // 없으면 결제는 됐는데 주문이 생성되지 않는다.)
+  // 토스 successUrl 리턴: 세션스토리지에 저장해 둔 주문 payload와 함께 서버
+  // 승인(confirm)을 호출한다. confirm 전에는 과금되지 않으므로 payload가
+  // 유실됐으면 그냥 실패 처리해도 안전하다 (미승인 건은 자동 만료).
+  const confirmToss = async (paymentKey: string, tossOrderId: string) => {
+    setStatus('processing');
+    const key = `objktt-toss:${tossOrderId}`;
+    const raw = sessionStorage.getItem(key);
+    if (!raw) {
+      setStatus('error');
+      setMessage('주문 정보를 찾을 수 없습니다. 결제가 승인되지 않았으니 처음부터 다시 시도해 주세요.');
+      return;
+    }
+    try {
+      const r = await fetch('/api/checkout/toss-confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentKey, orderId: tossOrderId, payload: JSON.parse(raw) }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (r.ok && data.ok) {
+        sessionStorage.removeItem(key);
+        setOrderId(data.orderName || data.orderId || '');
+        reset();
+        setStatus('done');
+      } else if (data.reason === 'sold_out') {
+        setStatus('soldout');
+        setMessage('죄송합니다. 결제 진행 중 해당 음반이 판매되었습니다. 결제는 승인되지 않았습니다.');
+      } else {
+        setStatus('error');
+        setMessage(data.error || '주문 처리 중 문제가 발생했습니다. 결제 내역은 고객센터로 문의해 주세요.');
+      }
+    } catch (e) {
+      setStatus('error');
+      setMessage(e instanceof Error ? e.message : '주문 확정 중 오류가 발생했습니다. 고객센터로 문의해 주세요.');
+    }
+  };
+
+  // Redirect-return flow. PortOne(KG이니시스/모바일)은 /checkout?paymentId=...
+  // 로, 토스 결제창은 성공 시 ?paymentKey=...&orderId=...&amount=..., 실패 시
+  // ?code=...&message=... 로 돌아온다. requestPayment 프로미스는 리다이렉트로
+  // 사라지므로 URL 파라미터를 읽어 서버 확정을 직접 호출한다. (이게 없으면
+  // 결제는 됐는데 주문이 생성되지 않는다.)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const paymentId = params.get('paymentId');
-    if (!paymentId) return;
-    const errCode = params.get('code'); // present on failure/cancel
+    const paymentId = params.get('paymentId'); // PortOne
+    const paymentKey = params.get('paymentKey'); // Toss success
+    const tossOrderId = params.get('orderId');
+    const errCode = params.get('code'); // present on failure/cancel (both PGs)
+    if (!paymentId && !paymentKey && !errCode) return;
     // Clean the query string so a refresh doesn't re-trigger.
     window.history.replaceState({}, '', window.location.pathname);
     if (errCode) {
@@ -142,7 +183,11 @@ const Checkout: React.FC = () => {
       setMessage(params.get('message') || '결제가 취소되었거나 실패했습니다.');
       return;
     }
-    confirmPayment(paymentId);
+    if (paymentKey && tossOrderId) {
+      confirmToss(paymentKey, tossOrderId);
+      return;
+    }
+    if (paymentId) confirmPayment(paymentId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -250,6 +295,35 @@ const Checkout: React.FC = () => {
         redeemToken = pd.token;
       }
 
+      if (PAYMENT_PROVIDER === 'toss') {
+        // 토스 결제창 (API 개별 연동). 주문 payload는 세션스토리지에 두고
+        // successUrl 리턴 후 서버 승인(confirm) 때 보낸다 — 서버가 금액을
+        // 재계산해 confirm 하므로 payload 변조는 승인 거절로 이어질 뿐이다.
+        const tossOrderId = `toss-${crypto.randomUUID()}`;
+        sessionStorage.setItem(
+          `objktt-toss:${tossOrderId}`,
+          JSON.stringify({
+            lineItems: cart.lines.map((l) => ({ variantId: l.merchandise.id, qty: l.quantity })),
+            shipping: { ...form },
+            ...(redeemToken ? { r: redeemToken } : {}),
+          })
+        );
+        const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY);
+        const payment = tossPayments.payment({ customerKey: ANONYMOUS });
+        await payment.requestPayment({
+          method: 'CARD',
+          amount: { currency: 'KRW', value: total },
+          orderId: tossOrderId,
+          orderName,
+          successUrl: `${window.location.origin}/checkout`,
+          failUrl: `${window.location.origin}/checkout`,
+          customerEmail: form.email.trim(),
+          customerName: form.name.trim(),
+          customerMobilePhone: form.phone.replace(/[^\d]/g, ''),
+        });
+        return; // 결제창이 successUrl/failUrl로 전체 리다이렉트한다.
+      }
+
       const res = await PortOne.requestPayment({
         storeId: PORTONE_STORE_ID,
         channelKey: PORTONE_CHANNEL_KEY,
@@ -348,7 +422,7 @@ const Checkout: React.FC = () => {
 
         {/* Summary */}
         <div style={{ border: '1px solid var(--color-line)', padding: isMobile ? '1.25rem' : '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div style={{ fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.5 }}>주문 요약</div>
+          <div style={{ fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.6 }}>주문 요약</div>
           {cart.lines.map((l) => (
             <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', fontSize: '0.9rem' }}>
               <span style={{ opacity: 0.85 }}>

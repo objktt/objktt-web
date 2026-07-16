@@ -23,16 +23,16 @@ import { verifyRedemption, spendForOrder } from './points.js';
  */
 
 // Keep in sync with src/lib/shipping.ts (frontend shows the same numbers).
-const FREE_SHIPPING_THRESHOLD = 50000;
-const FLAT_SHIPPING = 3000;
-const CURRENCY = 'KRW';
+export const FREE_SHIPPING_THRESHOLD = 50000;
+export const FLAT_SHIPPING = 3000;
+export const CURRENCY = 'KRW';
 
 const V2_API_SECRET = process.env.V2_API_SECRET;
 const SHOPIFY_ADMIN_TOKEN = process.env.SHOPIFY_ADMIN_TOKEN;
 const ADMIN_DOMAIN =
   process.env.SHOPIFY_ADMIN_DOMAIN || process.env.VITE_SHOPIFY_STORE_DOMAIN || 'objktt.myshopify.com';
 const API_VERSION = process.env.SHOPIFY_ADMIN_API_VERSION || '2024-10';
-const ALLOW_TEST_PAYMENTS = /^(1|true|yes)$/i.test(process.env.ALLOW_TEST_PAYMENTS || '');
+export const ALLOW_TEST_PAYMENTS = /^(1|true|yes)$/i.test(process.env.ALLOW_TEST_PAYMENTS || '');
 // Default fulfillment/stock location (gid). Overridable via env; falls back to
 // the store's single "Shop location". Used to zero out stock after a sale since
 // order creation runs with inventoryBehaviour BYPASS.
@@ -43,13 +43,17 @@ export type OrderResult =
   | { ok: true; status: number; orderName: string; orderId: string; idempotent?: boolean }
   | { ok: false; status: number; reason: string; error: string };
 
+export function isShopifyConfigured(): boolean {
+  return Boolean(SHOPIFY_ADMIN_TOKEN);
+}
+
 export function isConfigured(): boolean {
   return Boolean(V2_API_SECRET && SHOPIFY_ADMIN_TOKEN);
 }
 
-type LineItem = { variantId: string; qty: number };
+export type LineItem = { variantId: string; qty: number };
 
-interface VariantInfo {
+export interface VariantInfo {
   id: string;
   price: number;
   availableForSale: boolean;
@@ -61,7 +65,7 @@ interface VariantInfo {
   inventoryTracked: boolean;
 }
 
-async function adminGraphql<T = any>(query: string, variables: Record<string, unknown>): Promise<T> {
+export async function adminGraphql<T = any>(query: string, variables: Record<string, unknown>): Promise<T> {
   const r = await fetch(`https://${ADMIN_DOMAIN}/admin/api/${API_VERSION}/graphql.json`, {
     method: 'POST',
     headers: {
@@ -82,7 +86,7 @@ async function adminGraphql<T = any>(query: string, variables: Record<string, un
  * to 0 at the default location (records are 1-of-1 → mark sold out). Uses
  * inventorySetQuantities with the read value as compareQuantity. Best-effort.
  */
-async function decrementSoldInventory(
+export async function decrementSoldInventory(
   lineItems: LineItem[],
   byId: Map<string, VariantInfo>
 ): Promise<void> {
@@ -114,7 +118,7 @@ async function decrementSoldInventory(
 }
 
 /** Korean numbers → E.164 so Shopify won't reject the order. 01012345678 → +821012345678. */
-function normalizePhone(raw?: string): string | undefined {
+export function normalizePhone(raw?: string): string | undefined {
   if (!raw) return undefined;
   const d = raw.replace(/\D/g, '');
   if (!d) return undefined;
