@@ -353,11 +353,14 @@ const Shop: React.FC = () => {
   // anything yet, fall back to newest arrivals so the row is never empty.
   const featured = useMemo(() => {
     const withImage = products.filter((p) => p.featuredImage);
-    const byNewest = (a: VinylRecord, b: VinylRecord) =>
-      (Date.parse(b.createdAt ?? '') || 0) - (Date.parse(a.createdAt ?? '') || 0);
-    const curated = withImage.filter((p) => p.featured).sort(byNewest);
+    const soldOut = (p: VinylRecord) => (p.variants[0] ? !p.variants[0].availableForSale : false);
+    // 판매중 먼저(최신순), 품절은 맨 뒤로.
+    const byAvailThenNewest = (a: VinylRecord, b: VinylRecord) =>
+      (Number(soldOut(a)) - Number(soldOut(b))) ||
+      ((Date.parse(b.createdAt ?? '') || 0) - (Date.parse(a.createdAt ?? '') || 0));
+    const curated = withImage.filter((p) => p.featured).sort(byAvailThenNewest);
     if (curated.length > 0) return curated.slice(0, 15);
-    return [...withImage].sort(byNewest).slice(0, 15);
+    return [...withImage].sort(byAvailThenNewest).slice(0, 15);
   }, [products]);
 
   const showFeatured =
@@ -794,6 +797,8 @@ const FeaturedCarousel: React.FC<{ items: VinylRecord[]; isMobile: boolean }> = 
 const FeaturedCard: React.FC<{ record: VinylRecord; isMobile: boolean }> = ({ record, isMobile }) => {
   const [hovered, setHovered] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const variant = record.variants[0];
+  const soldOut = variant ? !variant.availableForSale : false;
   return (
     <Link
       to={`/shop/${record.handle}`}
@@ -807,6 +812,8 @@ const FeaturedCard: React.FC<{ record: VinylRecord; isMobile: boolean }> = ({ re
         textDecoration: 'none',
         color: 'inherit',
         display: 'block',
+        opacity: soldOut ? 0.45 : 1,
+        transition: 'opacity 0.2s ease',
       }}
     >
       <div
@@ -839,6 +846,25 @@ const FeaturedCard: React.FC<{ record: VinylRecord; isMobile: boolean }> = ({ re
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', opacity: 0.4 }}>
             No image
           </div>
+        )}
+
+        {soldOut && (
+          <span
+            style={{
+              position: 'absolute',
+              top: '0.5rem',
+              left: '0.5rem',
+              padding: '0.25rem 0.55rem',
+              fontSize: '0.65rem',
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              backgroundColor: 'var(--color-bg)',
+              color: 'var(--color-text)',
+              border: '1px solid var(--color-line)',
+            }}
+          >
+            Sold
+          </span>
         )}
       </div>
 
