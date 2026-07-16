@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import * as PortOne from '@portone/browser-sdk/v2';
 import { loadTossPayments, ANONYMOUS } from '@tosspayments/tosspayments-sdk';
@@ -191,64 +191,6 @@ const Checkout: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 토스 결제위젯: 결제수단(카드·간편결제·계좌이체 등) + 약관을 페이지에 렌더링.
-  // 노출 수단은 토스 어드민에서 관리. 서버 승인(confirm) 흐름은 결제창 방식과 동일.
-  const tossWidgetsRef = useRef<any>(null);
-  const tossMethodsRef = useRef<any>(null);
-  const tossAgreementRef = useRef<any>(null);
-  const [tossReady, setTossReady] = useState(false);
-
-  const showMainUi =
-    Boolean(cart && cart.lines.length > 0) && status !== 'done' && status !== 'processing';
-
-  useEffect(() => {
-    if (PAYMENT_PROVIDER !== 'toss' || !TOSS_CLIENT_KEY || !showMainUi) return;
-    if (tossWidgetsRef.current) return; // already initialized
-    let cancelled = false;
-    (async () => {
-      try {
-        const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY);
-        if (cancelled || tossWidgetsRef.current) return;
-        const widgets = tossPayments.widgets({ customerKey: ANONYMOUS });
-        tossWidgetsRef.current = widgets;
-        await widgets.setAmount({ currency: 'KRW', value: total });
-        const [methods, agreement] = await Promise.all([
-          widgets.renderPaymentMethods({ selector: '#toss-payment-methods' }),
-          widgets.renderAgreement({ selector: '#toss-agreement' }),
-        ]);
-        tossMethodsRef.current = methods;
-        tossAgreementRef.current = agreement;
-        if (!cancelled) setTossReady(true);
-      } catch (e) {
-        console.error('[checkout] toss widget init failed:', e);
-        if (!cancelled) {
-          tossWidgetsRef.current = null;
-          setMessage('결제 수단을 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.');
-          setStatus('error');
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-      // StrictMode 이중 마운트/언마운트 대응 — 렌더된 위젯을 정리한다.
-      tossMethodsRef.current?.destroy?.().catch?.(() => {});
-      tossAgreementRef.current?.destroy?.().catch?.(() => {});
-      tossMethodsRef.current = null;
-      tossAgreementRef.current = null;
-      tossWidgetsRef.current = null;
-      setTossReady(false);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showMainUi]);
-
-  // 적립금 적용 등으로 결제 금액이 바뀌면 위젯 금액 동기화.
-  useEffect(() => {
-    if (!tossReady || !tossWidgetsRef.current) return;
-    tossWidgetsRef.current.setAmount({ currency: 'KRW', value: total }).catch((e: unknown) => {
-      console.error('[checkout] toss setAmount failed:', e);
-    });
-  }, [total, tossReady]);
-
   const orderName = useMemo(() => {
     if (!cart || cart.lines.length === 0) return '';
     const first = cart.lines[0].merchandise.product.title;
@@ -354,14 +296,9 @@ const Checkout: React.FC = () => {
       }
 
       if (PAYMENT_PROVIDER === 'toss') {
-        // 토스 결제위젯. 주문 payload는 세션스토리지에 두고 successUrl 리턴 후
-        // 서버 승인(confirm) 때 보낸다 — 서버가 금액을 재계산해 confirm 하므로
-        // payload 변조는 승인 거절로 이어질 뿐이다.
-        if (!tossWidgetsRef.current) {
-          setStatus('error');
-          setMessage('결제 수단이 아직 준비되지 않았습니다. 잠시 후 다시 시도해 주세요.');
-          return;
-        }
+        // 토스 결제창 (API 개별 연동). 주문 payload는 세션스토리지에 두고
+        // successUrl 리턴 후 서버 승인(confirm) 때 보낸다 — 서버가 금액을
+        // 재계산해 confirm 하므로 payload 변조는 승인 거절로 이어질 뿐이다.
         const tossOrderId = `toss-${crypto.randomUUID()}`;
         sessionStorage.setItem(
           `objktt-toss:${tossOrderId}`,
@@ -371,7 +308,11 @@ const Checkout: React.FC = () => {
             ...(redeemToken ? { r: redeemToken } : {}),
           })
         );
-        await tossWidgetsRef.current.requestPayment({
+        const tossPayments = await loadTossPayments(TOSS_CLIENT_KEY);
+        const payment = tossPayments.payment({ customerKey: ANONYMOUS });
+        await payment.requestPayment({
+          method: 'CARD',
+          amount: { currency: 'KRW', value: total },
           orderId: tossOrderId,
           orderName,
           successUrl: `${window.location.origin}/checkout`,
@@ -380,7 +321,7 @@ const Checkout: React.FC = () => {
           customerName: form.name.trim(),
           customerMobilePhone: form.phone.replace(/[^\d]/g, ''),
         });
-        return; // 위젯이 successUrl/failUrl로 전체 리다이렉트한다.
+        return; // 결제창이 successUrl/failUrl로 전체 리다이렉트한다.
       }
 
       const res = await PortOne.requestPayment({
@@ -544,18 +485,10 @@ const Checkout: React.FC = () => {
             )}
           </div>
 
-          {PAYMENT_PROVIDER === 'toss' && (
-            // 위젯은 밝은 배경 기준으로 디자인돼 있어 다크 테마에서도 흰 카드로 감싼다.
-            <div style={{ background: '#ffffff', borderRadius: 8, overflow: 'hidden' }}>
-              <div id="toss-payment-methods" />
-              <div id="toss-agreement" />
-            </div>
-          )}
-
           <button
             type="button"
             onClick={pay}
-            disabled={!valid || status === 'paying' || (PAYMENT_PROVIDER === 'toss' && !tossReady)}
+            disabled={!valid || status === 'paying'}
             style={{
               padding: '1rem 1.5rem',
               fontSize: '1rem',
