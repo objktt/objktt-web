@@ -43,7 +43,7 @@ const encodeCustomData = (obj: unknown): string => {
 
 const Checkout: React.FC = () => {
   const { isMobile } = useBreakpoint();
-  const { cart, reset } = useCart();
+  const { cart, reset, removeLine, loading: cartLoading } = useCart();
   const { customer, isLoggedIn } = useAuth();
   useSeo({ title: '체크아웃 | OBJKTT' });
 
@@ -424,12 +424,27 @@ const Checkout: React.FC = () => {
         <div style={{ border: '1px solid var(--color-line)', padding: isMobile ? '1.25rem' : '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div style={{ fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.6 }}>주문 요약</div>
           {cart.lines.map((l) => (
-            <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', fontSize: '0.9rem' }}>
+            <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '1rem', fontSize: '0.9rem' }}>
               <span style={{ opacity: 0.85 }}>
                 {l.merchandise.product.title}
                 {l.quantity > 1 ? ` × ${l.quantity}` : ''}
               </span>
-              <span style={{ whiteSpace: 'nowrap' }}>{won(Number(l.cost.totalAmount.amount))}</span>
+              <span style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', whiteSpace: 'nowrap' }}>
+                {won(Number(l.cost.totalAmount.amount))}
+                <button
+                  type="button"
+                  aria-label={`${l.merchandise.product.title} 삭제`}
+                  disabled={cartLoading || status === 'paying'}
+                  onClick={() => void removeLine(l.id)}
+                  style={{
+                    padding: 0, background: 'none', border: 'none', fontFamily: 'inherit',
+                    fontSize: '0.95rem', lineHeight: 1, color: 'inherit', opacity: 0.45,
+                    cursor: cartLoading || status === 'paying' ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  ×
+                </button>
+              </span>
             </div>
           ))}
           <div style={{ borderTop: '1px solid var(--color-line)', paddingTop: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.9rem' }}>
