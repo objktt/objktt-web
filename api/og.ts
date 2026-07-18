@@ -163,10 +163,11 @@ async function handleShopList(category: string, res: VercelResponse) {
       after = products.pageInfo?.hasNextPage ? products.pageInfo.endCursor : null;
     } while (after);
 
-    // Edge-cache 2 min, serve stale up to 10 min while revalidating. Kept short
-    // so hub image swaps (which delete the old CDN file → stale URLs 404) heal
-    // within minutes instead of a day. Still warm for ~99% of requests.
-    res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
+    // Edge-cache 1 min, serve stale up to 3 min while revalidating. Kept short
+    // so (a) hub image swaps heal quickly and (b) 1-of-1 판매 직후 sold-out
+    // 배지가 그리드/피처에 수 분 내 반영된다 (재고 자체는 결제 시 서버가
+    // 라이브로 재확인하므로 오버셀 위험은 없음 — 표시 신선도 문제만).
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=180');
     return res.status(200).json({ nodes });
   } catch (e) {
     console.error('[shop] list fetch failed:', e);
