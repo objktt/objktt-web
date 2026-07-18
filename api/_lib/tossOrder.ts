@@ -67,7 +67,10 @@ export async function processTossPayment(
   }
 
   // 1) 멱등성 — 이미 이 결제로 주문이 만들어졌으면 그대로 반환.
-  const tag = `toss-${orderId}`;
+  // Shopify 태그는 40자 제한 — orderId(`toss-<uuid>`, 41자)를 그대로 붙이면
+  // 46자가 되어 orderCreate가 "Order tags is invalid"로 거부된다 (2026-07-18
+  // 실결제 장애의 원인). uuid 하이픈을 제거한 37자 결정적 태그를 쓴다.
+  const tag = `toss-${orderId.replace(/^toss-/, '').replace(/-/g, '')}`.slice(0, 40);
   try {
     const existing = await adminGraphql<{ orders: { edges: { node: { id: string; name: string } }[] } }>(
       `query ExistingOrder($q: String!) { orders(first: 1, query: $q) { edges { node { id name } } } }`,

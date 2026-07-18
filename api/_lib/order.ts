@@ -189,7 +189,9 @@ export async function processPaidPayment(paymentId: string): Promise<OrderResult
   }
 
   // 2) Idempotency — if we already created this order, return it (no refund, no dup).
-  const tag = `portone-${paymentId}`;
+  // Shopify 태그 40자 제한 대응 — `portone-pay-<uuid>`(48자)는 orderCreate가
+  // 거부한다. uuid 하이픈 제거로 40자에 맞춘다 (tossOrder.ts와 동일 이슈).
+  const tag = `portone-${paymentId.replace(/^pay-/, '').replace(/-/g, '')}`.slice(0, 40);
   try {
     const existing = await adminGraphql<{ orders: { edges: { node: { id: string; name: string } }[] } }>(
       `query ExistingOrder($q: String!) { orders(first: 1, query: $q) { edges { node { id name } } } }`,
