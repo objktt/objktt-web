@@ -220,6 +220,14 @@ const Account: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
+  // 마이페이지 진입 시 항상 최신 고객 데이터(주문 내역·적립금)를 다시 불러온다.
+  // AuthContext는 앱 부팅 시 1회만 조회하므로, 결제 직후 SPA 내 이동으로 오면
+  // 결제 전 스냅샷이 보이는 문제가 있었다.
+  useEffect(() => {
+    void refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
 

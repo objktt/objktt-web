@@ -44,7 +44,7 @@ const encodeCustomData = (obj: unknown): string => {
 const Checkout: React.FC = () => {
   const { isMobile } = useBreakpoint();
   const { cart, reset, removeLine, loading: cartLoading } = useCart();
-  const { customer, isLoggedIn } = useAuth();
+  const { customer, isLoggedIn, refresh } = useAuth();
   useSeo({ title: '체크아웃 | OBJKTT' });
 
   const [form, setForm] = useState({ name: '', phone: '', email: '', zip: '', address1: '', address2: '' });
@@ -117,6 +117,7 @@ const Checkout: React.FC = () => {
         setOrderId(data.orderName || data.orderId || '');
         reset();
         setStatus('done');
+        void refresh();
       } else if (data.reason === 'sold_out') {
         setStatus('soldout');
         setMessage('죄송합니다. 결제 중 해당 음반이 판매되었습니다. 결제는 자동 환불됩니다.');
@@ -154,6 +155,7 @@ const Checkout: React.FC = () => {
         setOrderId(data.orderName || data.orderId || '');
         reset();
         setStatus('done');
+        void refresh(); // 주문 내역·적립금이 마이페이지에 바로 반영되게 갱신
       } else if (data.reason === 'sold_out') {
         setStatus('soldout');
         setMessage('죄송합니다. 결제 진행 중 해당 음반이 판매되었습니다. 결제는 승인되지 않았습니다.');
