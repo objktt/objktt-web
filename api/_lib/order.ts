@@ -100,7 +100,9 @@ export async function decrementSoldInventory(
     }));
   if (quantities.length === 0) return;
 
-  await adminGraphql(
+  const data = await adminGraphql<{
+    inventorySetQuantities: { userErrors: { field: string[]; message: string }[] };
+  }>(
     `mutation SetZero($input: InventorySetQuantitiesInput!) {
       inventorySetQuantities(input: $input) {
         userErrors { field message }
@@ -115,6 +117,12 @@ export async function decrementSoldInventory(
       },
     }
   );
+  // userErrors는 top-level error가 아니라 adminGraphql이 안 던진다 — 조용한
+  // 실패(팔린 1-of-1이 품절 처리 안 됨)를 로그로 드러낸다.
+  const errs = data.inventorySetQuantities?.userErrors;
+  if (errs?.length) {
+    console.error('[checkout] inventory zero-out userErrors:', JSON.stringify(errs));
+  }
 }
 
 /** Korean numbers → E.164 so Shopify won't reject the order. 01012345678 → +821012345678. */
