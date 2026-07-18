@@ -111,7 +111,7 @@ export async function decrementSoldInventory(
     {
       input: {
         name: 'available',
-        reason: 'sold',
+        reason: 'other', // 'sold'는 유효한 reason이 아님 — 조용히 실패했던 원인 (2026-07-18)
         ignoreCompareQuantity: true,
         quantities,
       },
