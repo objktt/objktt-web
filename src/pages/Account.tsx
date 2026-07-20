@@ -350,12 +350,26 @@ const Account: React.FC = () => {
                 <p style={{ opacity: 0.55, fontSize: '0.95rem', margin: 0 }}>아직 주문 내역이 없습니다.</p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  {orders.map((o) => (
-                    <div key={o.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', padding: '0.7rem 0', borderBottom: '1px solid var(--color-line)', fontSize: '0.9rem' }}>
-                      <span>#{o.orderNumber} <span style={{ opacity: 0.5 }}>· {o.processedAt.slice(0, 10)}</span></span>
-                      <span style={{ whiteSpace: 'nowrap' }}>{won(o.total.amount, o.total.currencyCode)}</span>
-                    </div>
-                  ))}
+                  {orders.map((o) => {
+                    const items = o.items ?? [];
+                    const first = items[0];
+                    const itemLabel = first
+                      ? `${first.title}${first.quantity > 1 ? ` × ${first.quantity}` : ''}${items.length > 1 ? ` 외 ${items.length - 1}건` : ''}`
+                      : '';
+                    return (
+                      <div key={o.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', padding: '0.7rem 0', borderBottom: '1px solid var(--color-line)', fontSize: '0.9rem' }}>
+                        <span style={{ minWidth: 0 }}>
+                          #{o.orderNumber} <span style={{ opacity: 0.5 }}>· {o.processedAt.slice(0, 10)}</span>
+                          {itemLabel && (
+                            <span style={{ display: 'block', marginTop: '0.2rem', opacity: 0.75, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {itemLabel}
+                            </span>
+                          )}
+                        </span>
+                        <span style={{ whiteSpace: 'nowrap' }}>{won(o.total.amount, o.total.currencyCode)}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </section>

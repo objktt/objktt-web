@@ -31,6 +31,7 @@ export interface CustomerOrder {
   financialStatus: string | null;
   fulfillmentStatus: string | null;
   total: { amount: string; currencyCode: string };
+  items: { title: string; quantity: number }[];
 }
 
 export interface CustomerAddressEntry {
@@ -158,6 +159,7 @@ const CUSTOMER_QUERY = /* GraphQL */ `
             financialStatus
             fulfillmentStatus
             currentTotalPrice { amount currencyCode }
+            lineItems(first: 5) { edges { node { title quantity } } }
           }
         }
       }
@@ -212,6 +214,10 @@ export async function getCustomer(token: string): Promise<Customer | null> {
       financialStatus: e.node.financialStatus,
       fulfillmentStatus: e.node.fulfillmentStatus,
       total: e.node.currentTotalPrice,
+      items: (e.node.lineItems?.edges ?? []).map((li: any) => ({
+        title: li.node.title,
+        quantity: li.node.quantity,
+      })),
     })),
   };
 }

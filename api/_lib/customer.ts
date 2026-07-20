@@ -38,6 +38,7 @@ export interface BridgedCustomer {
     financialStatus: string | null;
     fulfillmentStatus: string | null;
     total: { amount: string; currencyCode: string };
+    items: { title: string; quantity: number }[];
   }[];
   points: number;
 }
@@ -209,6 +210,7 @@ export async function getCustomerById(id: string): Promise<BridgedCustomer | nul
               displayFinancialStatus
               displayFulfillmentStatus
               currentTotalPriceSet { shopMoney { amount currencyCode } }
+              lineItems(first: 5) { edges { node { title quantity } } }
             }
           }
         }
@@ -251,6 +253,10 @@ export async function getCustomerById(id: string): Promise<BridgedCustomer | nul
       financialStatus: e.node.displayFinancialStatus ?? null,
       fulfillmentStatus: e.node.displayFulfillmentStatus ?? null,
       total: e.node.currentTotalPriceSet?.shopMoney ?? { amount: '0', currencyCode: 'KRW' },
+      items: (e.node.lineItems?.edges ?? []).map((li: any) => ({
+        title: li.node.title,
+        quantity: li.node.quantity,
+      })),
     })),
     points,
   };
