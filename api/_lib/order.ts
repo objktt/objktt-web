@@ -1,6 +1,7 @@
 import { PortOneClient } from '@portone/server-sdk';
 import { findOrCreateCustomer, saveOrderAddress } from './customer.js';
 import { verifyRedemption, spendForOrder } from './points.js';
+import { krCity, krProvinceCode, splitName } from './krAddress.js';
 
 /**
  * Shared, authoritative "a PortOne payment succeeded → write the order to
@@ -122,6 +123,83 @@ export async function decrementSoldInventory(
   const errs = data.inventorySetQuantities?.userErrors;
   if (errs?.length) {
     console.error('[checkout] inventory zero-out userErrors:', JSON.stringify(errs));
+  }
+}
+
+export interface ShippingForm {
+  name?: string;
+  phone?: string;
+  email?: string;
+  zip?: string;
+  address1?: string;
+  address2?: string;
+}
+
+/** 체크아웃 폼 → Shopify MailingAddressInput (성/이름 분리 + province 매핑 포함). */
+export function buildShippingAddress(s: ShippingForm): Record<string, unknown> | undefined {
+  const address1 = (s.address1 || '').trim();
+  if (!address1) return undefined;
+  const { firstName, lastName } = splitName(s.name);
+  return {
+    firstName,
+    lastName,
+    address1,
+    address2: (s.address2 || '').trim() || undefined,
+    zip: (s.zip || '').trim() || undefined,
+    city: krCity(address1),
+    provinceCode: krProvinceCode(address1),
+    countryCode: 'KR',
+    phone: normalizePhone(s.phone),
+  };
+}
+
+/** 사람이 읽을 수 있는 배송지 원문 — Shopify가 주소를 거부해도 주문에 남는다. */
+export function addressSummary(s: ShippingForm): string {
+  const zip = (s.zip || '').trim();
+  return [
+    (s.name || '').trim(),
+    normalizePhone(s.phone),
+    zip ? `(${zip})` : '',
+    (s.address1 || '').trim(),
+    (s.address2 || '').trim(),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .slice(0, 255);
+}
+
+/**
+ * orderCreate가 배송지를 삼켰는지 확인하고, 삼켰으면 orderUpdate로 다시 넣는다.
+ * orderUpdate는 orderCreate와 달리 userErrors를 돌려주므로 원인이 로그에 남는다.
+ * 실패해도 결제·주문은 건드리지 않는다 (배송지는 주문 메모에도 기록돼 있다).
+ */
+export async function ensureShippingAddress(
+  orderGid: string,
+  address: Record<string, unknown>,
+  ref: string
+): Promise<void> {
+  try {
+    const check = await adminGraphql<{ order: { shippingAddress: { address1: string | null } | null } | null }>(
+      `query OrderAddr($id: ID!) { order(id: $id) { shippingAddress { address1 } } }`,
+      { id: orderGid }
+    );
+    if (check.order?.shippingAddress?.address1) return;
+
+    console.error(`[checkout] shippingAddress dropped by orderCreate for ${ref} — retrying via orderUpdate`);
+    const fixed = await adminGraphql<{
+      orderUpdate: { userErrors: { field: string[]; message: string }[] };
+    }>(
+      `mutation FixAddress($input: OrderInput!) {
+        orderUpdate(input: $input) { order { id } userErrors { field message } }
+      }`,
+      { input: { id: orderGid, shippingAddress: address } }
+    );
+    const errs = fixed.orderUpdate?.userErrors;
+    if (errs?.length) {
+      console.error(`[checkout] shippingAddress orderUpdate userErrors for ${ref}:`, JSON.stringify(errs));
+    }
+  } catch (e) {
+    console.error(`[checkout] shippingAddress verify failed for ${ref}:`, e);
   }
 }
 
@@ -314,6 +392,8 @@ export async function processPaidPayment(paymentId: string): Promise<OrderResult
   // 7) Create the order (decrement inventory, email the buyer).
   const phone = normalizePhone(shipping.phone || cd.phone);
   const name: string = (shipping.name || '').trim();
+  const shipForm: ShippingForm = { ...shipping, name, phone: shipping.phone || cd.phone };
+  const shipAddress = pickup ? undefined : buildShippingAddress(shipForm);
   const order: Record<string, unknown> = {
     email: shipping.email || cd.email || undefined,
     phone,
@@ -326,6 +406,8 @@ export async function processPaidPayment(paymentId: string): Promise<OrderResult
       { key: 'PortOne paymentId', value: paymentId },
       { key: 'PG', value: 'PortOne / KG이니시스' },
       { key: '수령 방법', value: pickup ? '매장 픽업' : '택배 배송' },
+      // Shopify가 배송지를 거부해도 원문은 주문에 남는다 (2026-09-02 유실 사고 방지).
+      ...(pickup ? [] : [{ key: '배송지 원문', value: addressSummary(shipForm) }]),
       ...(pointsUsed > 0 ? [{ key: '적립금 사용', value: `${pointsUsed.toLocaleString('ko-KR')}원` }] : []),
     ],
     // 적립금 사용분을 상품 고정 할인으로 반영 → 주문 합계가 실결제액과 일치한다.
@@ -340,19 +422,7 @@ export async function processPaidPayment(paymentId: string): Promise<OrderResult
         }
       : {}),
     lineItems: lineItems.map((l) => ({ variantId: l.variantId, quantity: l.qty })),
-    ...(pickup
-      ? {}
-      : {
-          shippingAddress: {
-            firstName: name || '고객',
-            address1: (shipping.address1 || '').trim() || '-',
-            address2: (shipping.address2 || '').trim() || undefined,
-            zip: (shipping.zip || '').trim() || undefined,
-            city: '서울',
-            countryCode: 'KR',
-            phone,
-          },
-        }),
+    ...(shipAddress ? { shippingAddress: shipAddress } : {}),
     shippingLines: [
       {
         title: pickup ? '매장 픽업' : shipFee === 0 ? '무료배송' : '기본배송',
@@ -395,6 +465,10 @@ export async function processPaidPayment(paymentId: string): Promise<OrderResult
       // TEMP DIAGNOSTIC: surface the real error so we can see the live cause.
       return { ok: false, status: 500, reason: 'order_failed', error: `[diag userErrors] ${JSON.stringify(errs)}` };
     }
+
+    // 배송지가 실제로 저장됐는지 확인 — orderCreate는 주소가 유효하지 않으면
+    // userErrors 없이 통째로 버린다. Best-effort, 주문은 절대 실패시키지 않는다.
+    if (shipAddress) await ensureShippingAddress(created.id, shipAddress, paymentId);
 
     // Since BYPASS skips auto-decrement, manually set each purchased variant's
     // available stock to 0 at the default location (records are 1-of-1, so this

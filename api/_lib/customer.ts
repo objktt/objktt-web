@@ -5,6 +5,7 @@
  */
 
 import { computeBalance } from './points.js';
+import { krCity, krProvinceCode, splitName } from './krAddress.js';
 
 const SHOPIFY_ADMIN_TOKEN = process.env.SHOPIFY_ADMIN_TOKEN;
 const ADMIN_DOMAIN =
@@ -105,14 +106,20 @@ export interface AddressInput {
 }
 
 function toMailingAddress(a: AddressInput) {
+  // Shopify는 lastName·province를 필수 검증한다 — 빠지면 주소 저장이 통째로
+  // 실패한다 (krAddress.ts 주석 참고). 성이 따로 안 오면 이름을 쪼갠다.
+  const { firstName, lastName } = (a.lastName || '').trim()
+    ? { firstName: (a.firstName || '').trim() || '고객', lastName: (a.lastName as string).trim() }
+    : splitName(a.firstName);
   return {
-    firstName: a.firstName || undefined,
-    lastName: a.lastName || undefined,
+    firstName,
+    lastName,
     phone: normalizePhone(a.phone),
     zip: a.zip || undefined,
     address1: a.address1 || undefined,
     address2: a.address2 || undefined,
-    city: a.city || '서울',
+    city: a.city || krCity(a.address1) || '서울',
+    provinceCode: krProvinceCode(a.address1),
     countryCode: 'KR',
   };
 }

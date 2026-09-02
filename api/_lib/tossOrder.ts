@@ -2,6 +2,9 @@ import {
   adminGraphql,
   decrementSoldInventory,
   normalizePhone,
+  buildShippingAddress,
+  addressSummary,
+  ensureShippingAddress,
   FREE_SHIPPING_THRESHOLD,
   FLAT_SHIPPING,
   CURRENCY,
@@ -10,6 +13,7 @@ import {
   type LineItem,
   type VariantInfo,
   type OrderResult,
+  type ShippingForm,
 } from './order.js';
 import { confirmTossPayment, cancelTossPayment, isTossConfigured, isTossTestKey } from './toss.js';
 import { findOrCreateCustomer, saveOrderAddress } from './customer.js';
@@ -189,6 +193,8 @@ export async function processTossPayment(
   // 7) 주문 생성 (BYPASS + 수동 재고 0 처리 — order.ts와 동일한 이유).
   const phone = normalizePhone(shipping.phone);
   const name: string = (shipping.name || '').trim();
+  const shipForm: ShippingForm = { ...shipping, name };
+  const shipAddress = pickup ? undefined : buildShippingAddress(shipForm);
   const order: Record<string, unknown> = {
     email: shipping.email || undefined,
     phone,
@@ -202,6 +208,8 @@ export async function processTossPayment(
       { key: 'Toss paymentKey', value: paymentKey },
       { key: 'PG', value: '토스페이먼츠 (직연동)' },
       { key: '수령 방법', value: pickup ? '매장 픽업' : '택배 배송' },
+      // Shopify가 배송지를 거부해도 원문은 주문에 남는다 (2026-09-02 유실 사고 방지).
+      ...(pickup ? [] : [{ key: '배송지 원문', value: addressSummary(shipForm) }]),
       ...(pointsUsed > 0 ? [{ key: '적립금 사용', value: `${pointsUsed.toLocaleString('ko-KR')}원` }] : []),
     ],
     ...(pointsUsed > 0
@@ -216,19 +224,7 @@ export async function processTossPayment(
       : {}),
     lineItems: lineItems.map((l) => ({ variantId: l.variantId, quantity: l.qty })),
     // 픽업 주문엔 배송지가 없다 — 매장 주소를 넣으면 운영 혼선이 생기므로 생략.
-    ...(pickup
-      ? {}
-      : {
-          shippingAddress: {
-            firstName: name || '고객',
-            address1: (shipping.address1 || '').trim() || '-',
-            address2: (shipping.address2 || '').trim() || undefined,
-            zip: (shipping.zip || '').trim() || undefined,
-            city: '서울',
-            countryCode: 'KR',
-            phone,
-          },
-        }),
+    ...(shipAddress ? { shippingAddress: shipAddress } : {}),
     shippingLines: [
       {
         title: pickup ? '매장 픽업' : shipFee === 0 ? '무료배송' : '기본배송',
@@ -264,6 +260,10 @@ export async function processTossPayment(
       await refund('주문 생성 실패로 자동 환불합니다.');
       return { ok: false, status: 500, reason: 'order_failed', error: '주문 생성에 실패하여 결제를 환불했습니다. 고객센터로 문의해 주세요.' };
     }
+
+    // 배송지가 실제로 저장됐는지 확인 — orderCreate는 주소가 유효하지 않으면
+    // userErrors 없이 통째로 버린다. Best-effort, 주문은 절대 실패시키지 않는다.
+    if (shipAddress) await ensureShippingAddress(created.id, shipAddress, orderId);
 
     try {
       await decrementSoldInventory(lineItems, byId);
