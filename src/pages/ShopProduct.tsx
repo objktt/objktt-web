@@ -1,8 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { getRecordByHandle, getProductsByCategory } from '../lib/getProducts';
 import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext';
+import { getStoredToken } from '../lib/account';
 import { useSeo, type SeoOptions } from '../lib/seo';
 import { FREE_SHIPPING_THRESHOLD, won } from '../lib/shipping';
 import EmailSignup from '../components/EmailSignup';
@@ -852,6 +854,9 @@ const ShopProduct: React.FC = () => {
 
       {/* Related records — horizontal carousel */}
       {related.length > 0 && <RelatedCarousel items={related} isMobile={isMobile} />}
+
+      {/* Product reviews */}
+      <ReviewSection productId={record.id} />
     </div>
   );
 };
@@ -1217,6 +1222,199 @@ const SpecRow: React.FC<{ label: string; value: string | null | undefined }> = (
       </dt>
       <dd style={{ margin: 0 }}>{value}</dd>
     </>
+  );
+};
+
+interface ReviewDisplay {
+  id: string;
+  displayName: string;
+  rating: number;
+  text: string;
+  ts: string;
+}
+
+const StarRating: React.FC<{ value: number; onChange?: (n: number) => void }> = ({ value, onChange }) => (
+  <div style={{ display: 'flex', gap: '0.15rem', cursor: onChange ? 'pointer' : 'default' }}>
+    {[1, 2, 3, 4, 5].map((n) => (
+      <span
+        key={n}
+        role={onChange ? 'button' : undefined}
+        tabIndex={onChange ? 0 : undefined}
+        aria-label={onChange ? `${n}점` : undefined}
+        onClick={() => onChange?.(n)}
+        onKeyDown={(e) => { if (onChange && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onChange(n); } }}
+        style={{ fontSize: '1.25rem', color: n <= value ? 'var(--color-accent)' : 'var(--color-line)', lineHeight: 1 }}
+      >
+        ★
+      </span>
+    ))}
+  </div>
+);
+
+const ReviewSection: React.FC<{ productId: string }> = ({ productId }) => {
+  const { isLoggedIn } = useAuth();
+  const [reviews, setReviews] = useState<ReviewDisplay[]>([]);
+  const [hasReviewed, setHasReviewed] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [rating, setRating] = useState(5);
+  const [text, setText] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+  const authHeaders = (): Record<string, string> => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const stored = getStoredToken();
+    if (stored) headers['X-Storefront-Token'] = stored.accessToken;
+    return headers;
+  };
+
+  const fetchReviews = useCallback(async () => {
+    setLoading(true);
+    try {
+      const r = await fetch('/api/account/address', {
+        method: 'POST',
+        credentials: 'include',
+        headers: authHeaders(),
+        body: JSON.stringify({ action: 'reviews-get', productId }),
+      });
+      const j = await r.json();
+      if (j.ok) {
+        setReviews(j.reviews || []);
+        setHasReviewed(j.hasReviewed || false);
+      }
+    } catch { /* silent */ }
+    finally { setLoading(false); }
+  }, [productId]);
+
+  useEffect(() => { void fetchReviews(); }, [fetchReviews]);
+
+  const submit = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    setResult(null);
+    try {
+      const r = await fetch('/api/account/address', {
+        method: 'POST',
+        credentials: 'include',
+        headers: authHeaders(),
+        body: JSON.stringify({ action: 'review-submit', productId, rating, text }),
+      });
+      const j = await r.json();
+      if (j.ok) {
+        setResult({ ok: true, message: j.credited ? '리뷰가 등록되었습니다. 300 포인트가 적립되었습니다!' : '리뷰가 등록되었습니다.' });
+        setHasReviewed(true);
+        await fetchReviews();
+      } else {
+        setResult({ ok: false, message: j.error || '리뷰 등록에 실패했습니다.' });
+      }
+    } catch {
+      setResult({ ok: false, message: '오류가 발생했습니다. 다시 시도해 주세요.' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div style={{ marginTop: '4rem', paddingTop: '2rem', borderTop: '1px solid var(--color-line)' }}>
+      <div style={{ fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.6, marginBottom: '1.5rem' }}>
+        Reviews{reviews.length > 0 ? ` (${reviews.length})` : ''}
+      </div>
+
+      {loading ? (
+        <div style={{ opacity: 0.45, fontSize: '0.875rem' }}>Loading…</div>
+      ) : reviews.length === 0 ? (
+        <div style={{ opacity: 0.5, fontSize: '0.875rem', marginBottom: '1.5rem' }}>
+          아직 리뷰가 없습니다. 첫 리뷰를 남겨보세요.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '2rem' }}>
+          {reviews.map((r) => (
+            <div key={r.id} style={{ paddingBottom: '1.25rem', borderBottom: '1px solid var(--color-line)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                <StarRating value={r.rating} />
+                <span style={{ fontSize: '0.8rem', opacity: 0.65 }}>{r.displayName}</span>
+                <span style={{ fontSize: '0.75rem', opacity: 0.4, marginLeft: 'auto' }}>
+                  {new Date(r.ts).toLocaleDateString('ko-KR')}
+                </span>
+              </div>
+              {r.text && (
+                <div style={{ fontSize: '0.9rem', lineHeight: 1.65, whiteSpace: 'pre-line', opacity: 0.85 }}>
+                  {r.text}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {isLoggedIn && !hasReviewed && !loading && (
+        <div style={{ paddingTop: '1.5rem', borderTop: '1px solid var(--color-line)' }}>
+          <div style={{ fontSize: '0.875rem', fontWeight: 500, marginBottom: '1.25rem' }}>리뷰 작성하기</div>
+          <div style={{ marginBottom: '1rem' }}>
+            <div style={{ fontSize: '0.75rem', opacity: 0.6, marginBottom: '0.5rem' }}>별점</div>
+            <StarRating value={rating} onChange={setRating} />
+          </div>
+          <div style={{ marginBottom: '1rem' }}>
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="이 음반에 대한 감상을 남겨주세요…"
+              rows={4}
+              maxLength={1000}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                fontSize: '0.9rem',
+                lineHeight: 1.55,
+                border: '1px solid var(--color-line)',
+                backgroundColor: 'var(--color-bg)',
+                color: 'var(--color-text)',
+                fontFamily: 'inherit',
+                resize: 'vertical',
+                boxSizing: 'border-box',
+                outline: 'none',
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => void submit()}
+              disabled={submitting}
+              style={{
+                padding: '0.75rem 1.5rem',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                letterSpacing: '0.03em',
+                border: '1px solid var(--color-text)',
+                backgroundColor: 'var(--color-text)',
+                color: 'var(--color-bg)',
+                cursor: submitting ? 'not-allowed' : 'pointer',
+                opacity: submitting ? 0.6 : 1,
+                fontFamily: 'inherit',
+                transition: 'opacity 0.2s ease',
+              }}
+            >
+              {submitting ? '등록 중…' : '리뷰 등록 (+300P)'}
+            </button>
+            <span style={{ fontSize: '0.78rem', opacity: 0.55 }}>리뷰 작성 시 300 포인트 적립</span>
+          </div>
+          {result && (
+            <div style={{ marginTop: '0.85rem', fontSize: '0.85rem', color: result.ok ? 'var(--color-accent)' : '#c33' }}>
+              {result.message}
+            </div>
+          )}
+        </div>
+      )}
+
+      {!isLoggedIn && !loading && (
+        <div style={{ fontSize: '0.85rem', opacity: 0.6 }}>
+          리뷰를 작성하려면{' '}
+          <a href="/account" style={{ color: 'inherit', textDecoration: 'underline' }}>로그인</a>
+          이 필요합니다. 리뷰 작성 시 300 포인트 적립.
+        </div>
+      )}
+    </div>
   );
 };
 
