@@ -6,6 +6,8 @@ import { useCart } from '../contexts/CartContext';
 import { useSeo, type SeoOptions } from '../lib/seo';
 import { FREE_SHIPPING_THRESHOLD, won } from '../lib/shipping';
 import EmailSignup from '../components/EmailSignup';
+import GoodsProduct from './GoodsProduct';
+import { isGoodsProduct } from '../lib/goods';
 import type { VinylRecord } from '../types/shopify';
 
 const formatKRW = (amount: string) => {
@@ -195,7 +197,7 @@ const ShopProduct: React.FC = () => {
   // Related records — the catalog list is session-cached (getProductsByCategory),
   // so this is usually instant; on a cold direct visit it's one extra request.
   useEffect(() => {
-    if (!record) {
+    if (!record || isGoodsProduct(record)) {
       setRelated([]);
       return;
     }
@@ -213,7 +215,7 @@ const ShopProduct: React.FC = () => {
   }, [record]);
 
   const seo = useMemo<SeoOptions>(() => {
-    if (!record) return {};
+    if (!record || isGoodsProduct(record)) return {}; // goods set their own SEO
     const album = record.album || record.title;
     const fmt = record.productType || 'LP';
     const year = record.releaseYear ? `, ${record.releaseYear}` : '';
@@ -291,6 +293,9 @@ const ShopProduct: React.FC = () => {
       </div>
     );
   }
+
+  // Goods get the magazine layout; records keep the layout below.
+  if (isGoodsProduct(record)) return <GoodsProduct key={record.handle} record={record} />;
 
   const variant = record.variants[0];
   const soldOut = variant ? !variant.availableForSale : false;

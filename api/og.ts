@@ -20,6 +20,8 @@ const PRODUCT_QUERY = /* GraphQL */ `
       title
       description
       productType
+      vendor
+      tags
       featuredImage { url }
       images(first: 10) { edges { node { url } } }
       variants(first: 1) { edges { node { availableForSale price { amount currencyCode } } } }
@@ -216,16 +218,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   if (!p) return sendShell();
 
-  const album = mv(p.album) || albumFromTitle(p.title);
-  const artist = mv(p.artist) || mv(p.kArtist) || artistFromTitle(p.title) || '';
+  // Goods (tag "goods" or productType "Goods") aren't records: plain product title,
+  // new condition, vendor as brand. Must stay in sync with src/lib/goods.ts.
+  const isGoods =
+    String(p.productType || '').trim().toLowerCase() === 'goods' ||
+    (p.tags || []).some((t: string) => String(t).trim().toLowerCase() === 'goods');
+
+  const album = isGoods ? p.title : mv(p.album) || albumFromTitle(p.title);
+  const artist = isGoods ? '' : mv(p.artist) || mv(p.kArtist) || artistFromTitle(p.title) || '';
   const fmt = p.productType || 'LP';
-  const year = mv(p.releaseYear) || mv(p.kReleaseYear) || '';
+  const year = isGoods ? '' : mv(p.releaseYear) || mv(p.kReleaseYear) || '';
   const head = [artist, album].filter(Boolean).join(' – ');
-  const title = `${head} (${fmt}${year ? `, ${year}` : ''}) | OBJKTT`;
-  const label = mv(p.label) || mv(p.kLabel) || '';
-  const genre = mv(p.genre) || mv(p.kGenre) || '';
+  const title = isGoods
+    ? `${p.title} | OBJKTT Goods`
+    : `${head} (${fmt}${year ? `, ${year}` : ''}) | OBJKTT`;
+  const label = isGoods ? '' : mv(p.label) || mv(p.kLabel) || '';
+  const genre = isGoods ? '' : mv(p.genre) || mv(p.kGenre) || '';
   const description = (
-    cleanDesc(p.description) || [artist, album, label, genre, year].filter(Boolean).join(' · ')
+    cleanDesc(p.description) ||
+    (isGoods ? p.title : [artist, album, label, genre, year].filter(Boolean).join(' · '))
   )
     .replace(/\s+/g, ' ')
     .trim()
@@ -241,9 +252,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: album,
-    itemCondition: 'https://schema.org/UsedCondition',
+    itemCondition: isGoods ? 'https://schema.org/NewCondition' : 'https://schema.org/UsedCondition',
   };
-  if (artist) jsonLd.brand = { '@type': 'Brand', name: artist };
+  if (isGoods) jsonLd.brand = { '@type': 'Brand', name: p.vendor || 'OBJKTT' };
+  else if (artist) jsonLd.brand = { '@type': 'Brand', name: artist };
   const imgs = (p.images?.edges ?? []).map((e: any) => e.node.url).slice(0, 10);
   if (imgs.length) jsonLd.image = imgs;
   if (description) jsonLd.description = description;
@@ -259,7 +271,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         : available
         ? 'https://schema.org/InStock'
         : 'https://schema.org/OutOfStock',
-      itemCondition: 'https://schema.org/UsedCondition',
+      itemCondition: isGoods ? 'https://schema.org/NewCondition' : 'https://schema.org/UsedCondition',
       seller: { '@type': 'Organization', name: 'OBJKTT' },
     };
   }

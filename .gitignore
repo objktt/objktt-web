@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 .vercel
 .playwright-mcp/
+
+# Raw photo originals for goods (hundreds of MB) — web copies live on Shopify
+src/assets/img/objktt_oct_goods/
