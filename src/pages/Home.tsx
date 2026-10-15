@@ -22,7 +22,6 @@ const HERO_IMAGES = [hero1, hero2, hero3, hero4, hero5]; // 히어로 슬라이�
 const HERO_WORDS = ['Every', 'Object', 'is', 'a', 'Universe', 'in', 'Itself.'];
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
 const rng = (p: number, a: number, b: number) => clamp01((p - a) / (b - a));
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 import type { VinylRecord } from '../types/shopify';
 
 import { useLanguage } from '../contexts/LanguageContext';
@@ -82,37 +81,9 @@ const Home: React.FC = () => {
       window.removeEventListener('resize', onScroll);
     };
   }, []);
-  const hideCount = Math.round(rng(prog, 0, 0.4) * HERO_WORDS.length);
-  const captionOpacity = 1 - rng(prog, 0.42, 0.5);
-  // After the words + caption are gone, the image converges into a circle (~blob size) and fills blue → a blue dot.
-  const clipR = lerp(150, 10, rng(prog, 0.5, 0.78));
-  const blueOpacity = rng(prog, 0.55, 0.74);
-
-  const ringText = 'Objktt Blue Dot Universe';
-  const blobPath = (rT: number, rR: number, rB: number, rL: number) => {
-    const C = 100, K = 0.5523;
-    return [
-      `M ${C} ${C - rT}`,
-      `C ${C + K * rR} ${C - rT} ${C + rR} ${C - K * rT} ${C + rR} ${C}`,
-      `C ${C + rR} ${C + K * rB} ${C + K * rR} ${C + rB} ${C} ${C + rB}`,
-      `C ${C - K * rL} ${C + rB} ${C - rL} ${C + K * rB} ${C - rL} ${C}`,
-      `C ${C - rL} ${C - K * rT} ${C - K * rL} ${C - rT} ${C} ${C - rT}`,
-      'Z',
-    ].join(' ');
-  };
-  // Blob (inner) and text-ring (outer) share the SAME per-side radii so the gap
-  // between text and blob stays uniform; outer = inner + constant offset.
-  const RING_GAP = 13;
-  const blobSets = [
-    [62, 60, 62, 60],
-    [66, 56, 59, 64],
-    [58, 65, 66, 56],
-    [64, 62, 56, 63],
-  ];
-  const blobInner = blobSets.map((s) => blobPath(s[0], s[1], s[2], s[3]));
-  const blobOuter = blobSets.map((s) => blobPath(s[0] + RING_GAP, s[1] + RING_GAP, s[2] + RING_GAP, s[3] + RING_GAP));
-  const blobInnerValues = [...blobInner, blobInner[0]].join(';');
-  const blobOuterValues = [...blobOuter, blobOuter[0]].join(';');
+  // Words leave one by one over the first 70% of the pinned scroll, then the caption fades.
+  const hideCount = Math.round(rng(prog, 0, 0.7) * HERO_WORDS.length);
+  const captionOpacity = 1 - rng(prog, 0.72, 0.95);
 
   // Atmosphere carousel — keep it parked at the start (first image aligned to the title).
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -177,8 +148,8 @@ const Home: React.FC = () => {
 
   return (
     <div style={{ padding: 0, position: 'relative' }}>
-      {/* ─── Hero: pinned image (divider width) + headline; scroll removes words ─── */}
-      <div ref={heroRef} style={{ position: 'relative', width: '100%', height: '200vh' }}>
+      {/* ─── Hero: pinned image (divider width) + headline; scroll removes words one by one ─── */}
+      <div ref={heroRef} style={{ position: 'relative', width: '100%', height: '160vh' }}>
         <div style={{
           position: 'sticky',
           top: 'var(--header-height)',
@@ -187,12 +158,7 @@ const Home: React.FC = () => {
           padding: isMobile ? '0 1.5rem 1.5rem' : '0 4rem 2rem',
         }}>
           <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', backgroundColor: 'var(--color-bg)' }}>
-            {/* Image + blue fill, clipped into a circle that shrinks to a centered blue dot */}
-            <div style={{
-              position: 'absolute',
-              inset: 0,
-              clipPath: `circle(${clipR}% at 50% 50%)`,
-            }}>
+            <div style={{ position: 'absolute', inset: 0 }}>
               {HERO_IMAGES.map((src, i) => (
                 <img
                   key={i}
@@ -223,44 +189,6 @@ const Home: React.FC = () => {
                 background: 'linear-gradient(to bottom, rgba(0,0,0,0.55), rgba(0,0,0,0.18) 55%, rgba(0,0,0,0.38) 100%)',
                 pointerEvents: 'none',
               }} />
-              {/* Blue fill — the converging circle becomes the brand blue dot */}
-              <div style={{ position: 'absolute', inset: 0, backgroundColor: 'var(--color-accent)', opacity: blueOpacity }} />
-            </div>
-            {/* Blue dot + text ring as one rotating SVG so the gap between the
-                text and the blob stays uniform; both morph in sync (8s). */}
-            <div style={{
-              position: 'absolute',
-              left: '50%',
-              top: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: isMobile ? '84vw' : '42vh',
-              height: isMobile ? '84vw' : '42vh',
-              opacity: prog >= 0.78 ? 1 : 0,
-              transition: 'opacity 0.4s ease',
-              pointerEvents: 'none',
-            }}>
-              <div style={{ width: '100%', height: '100%', animation: 'recordSpin2D 30s linear infinite' }}>
-                <svg viewBox="0 0 200 200" width="100%" height="100%" style={{ overflow: 'visible' }}>
-                  <defs>
-                    <path id="blueDotRing" fill="none" d={blobOuter[0]}>
-                      <animate attributeName="d" dur="8s" repeatCount="indefinite" calcMode="spline"
-                        keyTimes="0;0.25;0.5;0.75;1"
-                        keySplines="0.45 0 0.55 1;0.45 0 0.55 1;0.45 0 0.55 1;0.45 0 0.55 1"
-                        values={blobOuterValues} />
-                    </path>
-                  </defs>
-                  <path fill="var(--color-accent)" d={blobInner[0]}>
-                    <animate attributeName="d" dur="8s" repeatCount="indefinite" calcMode="spline"
-                      keyTimes="0;0.25;0.5;0.75;1"
-                      keySplines="0.45 0 0.55 1;0.45 0 0.55 1;0.45 0 0.55 1;0.45 0 0.55 1"
-                      values={blobInnerValues} />
-                  </path>
-                  <text fill="var(--color-accent)" fontSize="6" fontWeight="500" letterSpacing="1"
-                    fillOpacity="0.95" style={{ fontFamily: "'Google Sans', sans-serif" }}>
-                    <textPath href="#blueDotRing" startOffset="0">{ringText}</textPath>
-                  </text>
-                </svg>
-              </div>
             </div>
             <h1 style={{
               position: 'absolute',
