@@ -104,8 +104,10 @@ const Mosaic: React.FC<{
   isMobile: boolean;
   alt: string;
   caption: string;
-}> = ({ images, start, isMobile, alt, caption }) => {
-  const rows = buildRows(images);
+  /** Show the first photo alone, full width (one-column grid), before the 2-up rows. */
+  firstFull?: boolean;
+}> = ({ images, start, isMobile, alt, caption, firstFull }) => {
+  const rows: ShopifyImage[][] = firstFull && images.length ? [[images[0]], ...buildRows(images.slice(1))] : buildRows(images);
   const gap = isMobile ? '0.5rem' : '0.75rem';
   let n = start;
   return (
@@ -123,7 +125,7 @@ const Mosaic: React.FC<{
         }
         const im = row[0];
         const i = n++;
-        if (ratioOf(im) >= 1.05 || isMobile) {
+        if (ratioOf(im) >= 1.05 || isMobile || (firstFull && ri === 0)) {
           return <Tile key={ri} im={im} n={i} w={isMobile ? 440 : 840} alt={alt} />;
         }
         // Lone portrait: image on one side, a quiet caption on the other.
@@ -514,7 +516,7 @@ const GoodsProduct: React.FC<{ record: VinylRecord }> = ({ record }) => {
                   <Thumbs images={gallery} active={activePhoto} alt={mosaicAlt} />
                 </div>
               )}
-              <Mosaic images={gallery} start={0} isMobile={false} alt={mosaicAlt} caption={mosaicCaption} />
+              <Mosaic images={gallery} start={0} isMobile={false} alt={mosaicAlt} caption={mosaicCaption} firstFull />
             </div>
             <div
               className="hide-scrollbar"
