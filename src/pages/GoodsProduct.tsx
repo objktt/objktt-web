@@ -70,7 +70,7 @@ const Tile: React.FC<{ im: ShopifyImage; n: number; w: number; alt: string; offs
   alt,
   offset,
 }) => (
-  <figure style={{ margin: 0, marginTop: offset ? '4rem' : 0 }}>
+  <figure id={`photo-${n}`} style={{ margin: 0, marginTop: offset ? '4rem' : 0, scrollMarginTop: '12.5rem' }}>
     <img
       src={sized(im.url, w)}
       alt={im.altText || alt}
@@ -143,6 +143,45 @@ const Mosaic: React.FC<{
   );
 };
 
+/* ─────────────────────────── thumbnails ─────────────────────────── */
+
+// Strip of small photos: click scrolls to that photo, the one in view is highlighted.
+const Thumbs: React.FC<{ images: ShopifyImage[]; active: number; alt: string }> = ({ images, active, alt }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const box = ref.current;
+    const el = box?.children[active] as HTMLElement | undefined;
+    if (box && el) box.scrollTo({ left: el.offsetLeft - box.clientWidth / 2 + el.clientWidth / 2, behavior: 'smooth' });
+  }, [active]);
+  return (
+    <div ref={ref} className="hide-scrollbar" style={{ display: 'flex', gap: 8, overflowX: 'auto', position: 'relative' }}>
+      {images.map((im, i) => (
+        <button
+          key={im.url}
+          type="button"
+          aria-label={`Photo ${i + 1}`}
+          aria-current={i === active}
+          onClick={() => document.getElementById(`photo-${i}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          style={{
+            flex: '0 0 auto',
+            width: 56,
+            height: 70,
+            padding: 0,
+            overflow: 'hidden',
+            background: 'var(--color-line)',
+            border: i === active ? '1px solid var(--color-text)' : '1px solid transparent',
+            opacity: i === active ? 1 : 0.55,
+            cursor: 'pointer',
+            transition: 'opacity 0.2s ease, border-color 0.2s ease',
+          }}
+        >
+          <img src={sized(im.url, 56)} alt={im.altText || alt} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        </button>
+      ))}
+    </div>
+  );
+};
+
 /* ───────────────────────────── page ───────────────────────────── */
 
 const GoodsProduct: React.FC<{ record: VinylRecord }> = ({ record }) => {
@@ -165,6 +204,21 @@ const GoodsProduct: React.FC<{ record: VinylRecord }> = ({ record }) => {
   const gallery: ShopifyImage[] = (
     record.images.length ? record.images : record.featuredImage ? [record.featuredImage] : []
   ).filter((im, i, arr) => arr.findIndex((x) => x.url === im.url) === i);
+
+  // Which photo is in view (drives the thumbnail highlight).
+  const [activePhoto, setActivePhoto] = useState(0);
+  useEffect(() => {
+    const els = Array.from(document.querySelectorAll<HTMLElement>('[id^="photo-"]'));
+    if (!els.length || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) if (e.isIntersecting) setActivePhoto(Number(e.target.id.replace('photo-', '')));
+      },
+      { rootMargin: '-35% 0px -55% 0px' }
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [gallery.length, isMobile]);
 
   const deck = L(ed?.deck);
   const aboutParas = (L(ed?.about) || record.description)
@@ -434,6 +488,11 @@ const GoodsProduct: React.FC<{ record: VinylRecord }> = ({ record }) => {
         {isMobile ? (
           <div style={{ marginTop: '1.5rem' }}>
             <Mosaic images={gallery.slice(0, 1)} start={0} isMobile alt={mosaicAlt} caption={mosaicCaption} />
+            {gallery.length > 1 && (
+              <div style={{ marginTop: 'var(--sp-3, 15px)' }}>
+                <Thumbs images={gallery} active={activePhoto} alt={mosaicAlt} />
+              </div>
+            )}
             <div style={{ marginTop: '1.5rem' }}>{panel}</div>
             <div style={{ marginTop: '2.5rem' }}>
               <Mosaic images={gallery.slice(1)} start={1} isMobile alt={mosaicAlt} caption={mosaicCaption} />
@@ -449,7 +508,14 @@ const GoodsProduct: React.FC<{ record: VinylRecord }> = ({ record }) => {
               alignItems: 'start',
             }}
           >
-            <Mosaic images={gallery} start={0} isMobile={false} alt={mosaicAlt} caption={mosaicCaption} />
+            <div style={{ minWidth: 0 }}>
+              {gallery.length > 1 && (
+                <div style={{ position: 'sticky', top: '7.5rem', zIndex: 5, background: 'var(--color-bg)', paddingBottom: 10, marginBottom: 10 }}>
+                  <Thumbs images={gallery} active={activePhoto} alt={mosaicAlt} />
+                </div>
+              )}
+              <Mosaic images={gallery} start={0} isMobile={false} alt={mosaicAlt} caption={mosaicCaption} />
+            </div>
             <div
               className="hide-scrollbar"
               style={{
