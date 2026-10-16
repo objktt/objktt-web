@@ -116,6 +116,45 @@ const CATEGORIES: { key: ShopCategory; label: string }[] = [
   { key: 'goods', label: 'Goods' },
 ];
 
+// 맨 앞에 두고 싶은 앨범(handle, 순서대로). 품절이면 자동으로 맨 뒤로 간다.
+// shortcut: 수동 목록, 앨범이 팔리거나 바뀌면 여기를 고친다.
+const PINNED_HANDLES = [
+  'the-rolling-stones-goats-head-soup-1',
+  'the-rolling-stones-goats-head-soup',
+  'pet-shop-boys-west-end-girls',
+  'daryl-hall-john-oates-private-eyes',
+  'daryl-hall-john-oates-x-static',
+  'jackson-browne-the-pretender',
+  'jackson-browne-late-for-the-sky',
+  'paul-simon-still-crazy-after-all-these-years',
+  'the-doobie-brothers-toulouse-street',
+  'kool-the-gang-emergency',
+  'donna-summer-the-wanderer',
+  'diana-ross-silk-electric',
+  'diana-ross-why-do-fools-fall-in-love',
+  'neneh-cherry-buffalo-stance',
+  'anita-ward-sweet-surrender',
+  'prince-glam-slam',
+  'prince-alphabet-st',
+  'jean-michel-jarre-rendez-vous',
+  'ultravox-quartet',
+  'airto-moreira-free',
+  'plastics-plastics-welcome-plastics-ウエルカム-プラスチックス',
+  'sandii-the-sunsetz-la-la-la-la-love-banzai-baby',
+  'sandii-the-sunsetz-viva-lava-liva-1980-1983',
+  'yukihiro-takahashi-yukihiro-takahashi-四月の魚-poisson-davril',
+  'akiko-yano-akiko-yano-いろはにこんぺいとう',
+  'miyuki-nakajima-寒水魚',
+  'ippu-do-ippu-do-lunatic-menu',
+  'yukiko-okada-fairy',
+];
+const PINNED_RANK = new Map(PINNED_HANDLES.map((h, i) => [h, i]));
+const isSoldOut = (p: VinylRecord) => (p.variants[0] ? !p.variants[0].availableForSale : false);
+// 판매중 먼저, 그 안에서 PINNED 순서. 품절은 항상 맨 뒤.
+const byStockThenPinned = (a: VinylRecord, b: VinylRecord) =>
+  (Number(isSoldOut(a)) - Number(isSoldOut(b))) ||
+  ((PINNED_RANK.get(a.handle) ?? 999) - (PINNED_RANK.get(b.handle) ?? 999));
+
 type SortKey =
   | 'featured'
   | 'price-asc'
@@ -340,7 +379,9 @@ const Shop: React.FC = () => {
       case 'year-asc':
         sorted.sort((a, b) => Number(a.releaseYear ?? 9999) - Number(b.releaseYear ?? 9999));
         break;
-      // 'featured' → keep API order
+      default:
+        // 'featured' → API 순서 유지, 단 판매중/PINNED 우선, 품절은 맨 뒤
+        sorted.sort(byStockThenPinned);
     }
     return sorted;
   }, [products, activeGenre, activeDecade, activeFormat, query, sortKey]);
@@ -352,15 +393,14 @@ const Shop: React.FC = () => {
   // Source of truth = hub's `kolektt.featured` flag. If the hub hasn't curated
   // anything yet, fall back to newest arrivals so the row is never empty.
   const featured = useMemo(() => {
-    const withImage = products.filter((p) => p.featuredImage);
-    const soldOut = (p: VinylRecord) => (p.variants[0] ? !p.variants[0].availableForSale : false);
-    // 판매중 먼저(최신순), 품절은 맨 뒤로.
-    const byAvailThenNewest = (a: VinylRecord, b: VinylRecord) =>
-      (Number(soldOut(a)) - Number(soldOut(b))) ||
+    // 품절은 캐러셀에서 제외(목록에서는 맨 뒤로 감).
+    const withImage = products.filter((p) => p.featuredImage && !isSoldOut(p));
+    const byStockPinnedNewest = (a: VinylRecord, b: VinylRecord) =>
+      byStockThenPinned(a, b) ||
       ((Date.parse(b.createdAt ?? '') || 0) - (Date.parse(a.createdAt ?? '') || 0));
-    const curated = withImage.filter((p) => p.featured).sort(byAvailThenNewest);
+    const curated = withImage.filter((p) => p.featured || PINNED_RANK.has(p.handle)).sort(byStockPinnedNewest);
     if (curated.length > 0) return curated.slice(0, 15);
-    return [...withImage].sort(byAvailThenNewest).slice(0, 15);
+    return [...withImage].sort(byStockPinnedNewest).slice(0, 15);
   }, [products]);
 
   const showFeatured =
