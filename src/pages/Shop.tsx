@@ -119,7 +119,6 @@ const CATEGORIES: { key: ShopCategory; label: string }[] = [
 // 맨 앞에 두고 싶은 앨범(handle, 순서대로). 품절이면 자동으로 맨 뒤로 간다.
 // shortcut: 수동 목록, 앨범이 팔리거나 바뀌면 여기를 고친다.
 const PINNED_HANDLES = [
-  'the-rolling-stones-goats-head-soup-1',
   'the-rolling-stones-goats-head-soup',
   'pet-shop-boys-west-end-girls',
   'daryl-hall-john-oates-private-eyes',
