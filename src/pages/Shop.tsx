@@ -7,6 +7,8 @@ import { isShopifyConfigured } from '../lib/shopify';
 import type { VinylRecord } from '../types/shopify';
 import { usePageSeo } from '../data/pageSeo';
 import Reveal from '../components/Reveal';
+import DjCollectionBadge from '../components/DjCollectionBadge';
+import { isDjCollection } from '../lib/djCollection';
 
 const formatKRW = (amount: string) => {
   const n = Number(amount);
@@ -187,6 +189,7 @@ const Shop: React.FC = () => {
   const activeGenre = searchParams.get('genre');
   const activeDecade = searchParams.get('decade');
   const activeFormat = searchParams.get('format');
+  const djOnly = searchParams.get('dj') === '1';
   const sortKey: SortKey =
     (SORT_OPTIONS.find(o => o.key === searchParams.get('sort'))?.key) ?? 'featured';
 
@@ -352,6 +355,7 @@ const Shop: React.FC = () => {
       if (activeGenre && !genreGroupsOfRecord(p).includes(activeGenre)) return false;
       if (activeDecade && decadeOf(p.releaseYear) !== activeDecade) return false;
       if (activeFormat && p.productType?.trim() !== activeFormat) return false;
+      if (djOnly && !isDjCollection(p)) return false;
       if (q) {
         const hay = [p.title, p.artist, p.label, p.genre]
           .filter(Boolean)
@@ -383,9 +387,10 @@ const Shop: React.FC = () => {
         sorted.sort(byStockThenPinned);
     }
     return sorted;
-  }, [products, activeGenre, activeDecade, activeFormat, query, sortKey]);
+  }, [products, activeGenre, activeDecade, activeFormat, djOnly, query, sortKey]);
 
-  const activeFilterCount = [activeGenre, activeDecade, activeFormat].filter(Boolean).length;
+  const djCount = useMemo(() => products.filter(isDjCollection).length, [products]);
+  const activeFilterCount = [activeGenre, activeDecade, activeFormat, djOnly].filter(Boolean).length;
   const showFilterUI = category === 'records' && (genres.length > 0 || decades.length > 0 || formats.length > 0);
 
   // Featured row, shown on the unfiltered records landing only.
@@ -407,6 +412,7 @@ const Shop: React.FC = () => {
     !activeGenre &&
     !activeDecade &&
     !activeFormat &&
+    !djOnly &&
     !query.trim() &&
     featured.length > 0;
 
@@ -573,6 +579,32 @@ const Shop: React.FC = () => {
                     }}
                   />
                 </div>
+                {djCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => updateParam('dj', djOnly ? null : '1')}
+                    aria-pressed={djOnly}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      padding: '0.6rem 1rem',
+                      fontSize: '0.85rem',
+                      fontWeight: 500,
+                      letterSpacing: '0.02em',
+                      borderRadius: '999px',
+                      border: '1px solid var(--color-text)',
+                      background: djOnly ? 'var(--color-text)' : 'var(--color-bg)',
+                      color: djOnly ? 'var(--color-bg)' : 'var(--color-text)',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <span>DJ Collection</span>
+                    <span style={{ opacity: 0.6 }}>{djCount}</span>
+                  </button>
+                )}
                 {isMobile && (
                   <button
                     type="button"
@@ -613,6 +645,7 @@ const Shop: React.FC = () => {
               {activeGenre && <ActiveChip label={activeGenre} onRemove={() => updateParam('genre', null)} />}
               {activeDecade && <ActiveChip label={activeDecade} onRemove={() => updateParam('decade', null)} />}
               {activeFormat && <ActiveChip label={activeFormat} onRemove={() => updateParam('format', null)} />}
+              {djOnly && <ActiveChip label="DJ Collection" onRemove={() => updateParam('dj', null)} />}
               <button
                 type="button"
                 onClick={clearAllFilters}
@@ -1613,6 +1646,13 @@ const RecordCard: React.FC<RecordCardProps> = ({ record, hovered, onHover }) => 
             )
           )}
         </div>
+
+        {/* DJ Collection capsule (bottom-left) */}
+        {isDjCollection(record) && (
+          <DjCollectionBadge
+            style={{ position: 'absolute', left: '0.5rem', bottom: '0.5rem', pointerEvents: 'none' }}
+          />
+        )}
 
         {/* Discount chip (top-right) */}
         {!isOffline && !soldOut && onSale && (

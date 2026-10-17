@@ -8,6 +8,8 @@ import { FREE_SHIPPING_THRESHOLD, won } from '../lib/shipping';
 import EmailSignup from '../components/EmailSignup';
 import GoodsProduct from './GoodsProduct';
 import { isGoodsProduct } from '../lib/goods';
+import DjCollectionBadge from '../components/DjCollectionBadge';
+import { isDjCollection, djNameOf } from '../lib/djCollection';
 import type { VinylRecord } from '../types/shopify';
 
 const formatKRW = (amount: string) => {
@@ -484,6 +486,16 @@ const ShopProduct: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
           {/* Artist + Title */}
           <div>
+            {isDjCollection(record) && (
+              <div style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <DjCollectionBadge />
+                {djNameOf(record) && (
+                  <span style={{ fontSize: '0.8rem', letterSpacing: '0.05em', opacity: 0.6 }}>
+                    Selected by {djNameOf(record)}
+                  </span>
+                )}
+              </div>
+            )}
             {record.artist && (
               <div
                 style={{
