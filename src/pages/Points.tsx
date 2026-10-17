@@ -32,7 +32,7 @@ const Points: React.FC = () => {
           },
           {
             heading: 'Sign-up bonus',
-            body: `Sign up and receive ${REWARDS.signupBonus.toLocaleString('en-US')} points (${wonEn(REWARDS.signupBonus)}).`,
+            body: `Sign up and receive ${REWARDS.signupBonus.toLocaleString('en-US')} points (${wonEn(REWARDS.signupBonus)}).\nWrite a review on a purchased product and receive ${REWARDS.reviewBonus} points.`,
           },
           {
             heading: 'Using points',
@@ -75,7 +75,7 @@ const Points: React.FC = () => {
         },
         {
           heading: '추가 적립',
-          body: `회원가입 시 ${REWARDS.signupBonus.toLocaleString('ko-KR')} 포인트(${wonKo(REWARDS.signupBonus)})를 적립해 드립니다.`,
+          body: `회원가입 시 ${REWARDS.signupBonus.toLocaleString('ko-KR')} 포인트(${wonKo(REWARDS.signupBonus)})를 적립해 드립니다.\n구매하신 상품의 리뷰를 작성하시면 ${REWARDS.reviewBonus} 포인트를 적립해 드립니다.`,
         },
         {
           heading: '사용 안내',
